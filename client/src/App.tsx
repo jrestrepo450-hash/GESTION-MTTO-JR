@@ -23,22 +23,17 @@ function Router() {
 }
 
 function App() {
-  const style = {
-    "--sidebar-width": "18rem",
-    "--sidebar-width-icon": "4rem",
-  };
-
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
-        <SidebarProvider style={style as React.CSSProperties}>
+        <SidebarProvider>
           <div className="flex h-screen w-full overflow-hidden bg-background">
             <AppSidebar />
             <div className="flex flex-col flex-1 w-full overflow-hidden">
               <header className="h-16 flex items-center justify-between px-4 border-b border-border/50 bg-card/50 backdrop-blur-md shrink-0 lg:hidden">
                 <div className="flex items-center gap-3">
                   <SidebarTrigger data-testid="button-sidebar-toggle" />
-                  <span className="font-display font-semibold text-foreground">Gran Hotel</span>
+                  <span className="font-display font-semibold text-foreground">Hotel Mantenimiento</span>
                 </div>
               </header>
               <main className="flex-1 overflow-y-auto">

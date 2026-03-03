@@ -21,211 +21,133 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { useCreateGuest, useUpdateGuest } from "@/hooks/use-guests";
-import type { Guest } from "@shared/schema";
+import { useCreateRoom, useUpdateRoom } from "@/hooks/use-rooms";
 import { Plus } from "lucide-react";
+import type { Room } from "@shared/schema";
 
-// Frontend schema that handles date strings properly for forms
 const formSchema = z.object({
   roomNumber: z.string().min(1, "El número de habitación es requerido"),
-  name: z.string().min(2, "El nombre completo es requerido"),
-  documentId: z.string().optional(),
-  checkIn: z.string().optional(),
-  checkOut: z.string().optional(),
+  name: z.string().min(2, "El nombre o responsable es requerido"),
   notes: z.string().optional(),
 });
 
 type FormValues = z.infer<typeof formSchema>;
 
 interface GuestFormDialogProps {
-  guest?: Guest | null;
+  room?: Room | null;
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
   trigger?: React.ReactNode;
 }
 
-export function GuestFormDialog({ guest, open: controlledOpen, onOpenChange, trigger }: GuestFormDialogProps) {
+export function GuestFormDialog({ room: existingRoom, open: controlledOpen, onOpenChange, trigger }: GuestFormDialogProps) {
   const [internalOpen, setInternalOpen] = useState(false);
-  const isEditing = !!guest;
+  const isEditing = !!existingRoom;
   
   const open = controlledOpen !== undefined ? controlledOpen : internalOpen;
   const setOpen = onOpenChange || setInternalOpen;
 
-  const createGuest = useCreateGuest();
-  const updateGuest = useUpdateGuest();
+  const createRoom = useCreateRoom();
+  const updateRoom = useUpdateRoom();
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
       roomNumber: "",
       name: "",
-      documentId: "",
-      checkIn: "",
-      checkOut: "",
       notes: "",
     },
   });
 
   useEffect(() => {
-    if (guest && open) {
+    if (existingRoom && open) {
       form.reset({
-        roomNumber: guest.roomNumber,
-        name: guest.name,
-        documentId: guest.documentId || "",
-        checkIn: guest.checkIn ? new Date(guest.checkIn).toISOString().split('T')[0] : "",
-        checkOut: guest.checkOut ? new Date(guest.checkOut).toISOString().split('T')[0] : "",
-        notes: guest.notes || "",
+        roomNumber: existingRoom.roomNumber,
+        name: existingRoom.name,
+        notes: existingRoom.notes || "",
       });
-    } else if (!open && !guest) {
-      form.reset({ roomNumber: "", name: "", documentId: "", checkIn: "", checkOut: "", notes: "" });
+    } else if (!open && !existingRoom) {
+      form.reset({ roomNumber: "", name: "", notes: "" });
     }
-  }, [guest, open, form]);
+  }, [existingRoom, open, form]);
 
   const onSubmit = (values: FormValues) => {
-    const payload = {
-      ...values,
-      checkIn: values.checkIn ? new Date(values.checkIn) : null,
-      checkOut: values.checkOut ? new Date(values.checkOut) : null,
-      documentId: values.documentId || null,
-      notes: values.notes || null,
-    };
-
-    if (isEditing && guest) {
-      updateGuest.mutate(
-        { id: guest.id, ...payload },
+    if (isEditing && existingRoom) {
+      updateRoom.mutate(
+        { id: existingRoom.id, ...values },
         { onSuccess: () => setOpen(false) }
       );
     } else {
-      createGuest.mutate(
-        payload as any, 
+      createRoom.mutate(
+        values as any, 
         { onSuccess: () => setOpen(false) }
       );
     }
   };
 
-  const isPending = createGuest.isPending || updateGuest.isPending;
+  const isPending = createRoom.isPending || updateRoom.isPending;
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       {trigger && <DialogTrigger asChild>{trigger}</DialogTrigger>}
       {!trigger && !controlledOpen && (
         <DialogTrigger asChild>
-          <Button className="hover-elevate active-elevate-2 bg-primary text-primary-foreground shadow-lg rounded-xl">
+          <Button className="rounded-xl">
             <Plus className="mr-2 h-4 w-4" />
-            Registrar Huésped
+            Nueva Habitación
           </Button>
         </DialogTrigger>
       )}
-      <DialogContent className="sm:max-w-[500px] p-0 overflow-hidden border-none shadow-2xl rounded-2xl">
-        <div className="bg-primary p-6 text-primary-foreground">
-          <DialogTitle className="font-display text-2xl">
-            {isEditing ? "Editar Huésped" : "Nuevo Huésped"}
-          </DialogTitle>
-          <DialogDescription className="text-primary-foreground/70 mt-1">
-            Complete los datos de registro para la hoja de vida.
-          </DialogDescription>
-        </div>
+      <DialogContent className="sm:max-w-[500px]">
+        <DialogHeader>
+          <DialogTitle>{isEditing ? "Editar Habitación" : "Nueva Habitación"}</DialogTitle>
+          <DialogDescription>Ingrese los detalles técnicos de la habitación.</DialogDescription>
+        </DialogHeader>
         
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="p-6 space-y-4 bg-card">
-            <div className="grid grid-cols-2 gap-4">
-              <FormField
-                control={form.control}
-                name="roomNumber"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel className="text-foreground font-semibold">Habitación</FormLabel>
-                    <FormControl>
-                      <Input placeholder="Ej. 101" className="rounded-xl border-border/50 bg-secondary/50 focus-visible:ring-primary" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="documentId"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel className="text-foreground font-semibold">Documento / Pasaporte</FormLabel>
-                    <FormControl>
-                      <Input placeholder="Ej. AB123456" className="rounded-xl border-border/50 bg-secondary/50 focus-visible:ring-primary" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
-
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+            <FormField
+              control={form.control}
+              name="roomNumber"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Número de Habitación</FormLabel>
+                  <FormControl>
+                    <Input placeholder="Ej. 101" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
             <FormField
               control={form.control}
               name="name"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel className="text-foreground font-semibold">Nombre Completo</FormLabel>
+                  <FormLabel>Responsable / Técnico</FormLabel>
                   <FormControl>
-                    <Input placeholder="Nombre del huésped" className="rounded-xl border-border/50 bg-secondary/50 focus-visible:ring-primary" {...field} />
+                    <Input placeholder="Nombre" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
             />
-
-            <div className="grid grid-cols-2 gap-4">
-              <FormField
-                control={form.control}
-                name="checkIn"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel className="text-foreground font-semibold">Fecha Entrada</FormLabel>
-                    <FormControl>
-                      <Input type="date" className="rounded-xl border-border/50 bg-secondary/50 focus-visible:ring-primary" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="checkOut"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel className="text-foreground font-semibold">Fecha Salida</FormLabel>
-                    <FormControl>
-                      <Input type="date" className="rounded-xl border-border/50 bg-secondary/50 focus-visible:ring-primary" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
-
             <FormField
               control={form.control}
               name="notes"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel className="text-foreground font-semibold">Notas Adicionales</FormLabel>
+                  <FormLabel>Notas</FormLabel>
                   <FormControl>
-                    <Textarea 
-                      placeholder="Preferencias, alergias, etc." 
-                      className="resize-none rounded-xl border-border/50 bg-secondary/50 focus-visible:ring-primary"
-                      rows={3}
-                      {...field} 
-                    />
+                    <Textarea placeholder="Observaciones generales" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
             />
-
-            <div className="pt-4 flex justify-end gap-3">
-              <Button type="button" variant="outline" onClick={() => setOpen(false)} className="rounded-xl hover-elevate">
-                Cancelar
-              </Button>
-              <Button type="submit" disabled={isPending} className="rounded-xl bg-accent text-accent-foreground hover:bg-accent/90 hover-elevate shadow-md">
-                {isPending ? "Guardando..." : "Guardar Registro"}
-              </Button>
+            <div className="flex justify-end gap-3">
+              <Button type="button" variant="outline" onClick={() => setOpen(false)}>Cancelar</Button>
+              <Button type="submit" disabled={isPending}>{isPending ? "Guardando..." : "Guardar"}</Button>
             </div>
           </form>
         </Form>

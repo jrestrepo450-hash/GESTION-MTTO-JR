@@ -1,4 +1,4 @@
-import { Building2, LayoutDashboard, Users, MessageSquareText } from "lucide-react";
+import { Building2, LayoutDashboard, Wrench } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import {
   Sidebar,
@@ -14,7 +14,7 @@ import {
 
 const items = [
   { title: "Panel Principal", url: "/", icon: LayoutDashboard },
-  { title: "Huéspedes", url: "/guests", icon: Users },
+  { title: "Habitaciones", url: "/guests", icon: Wrench },
 ];
 
 export function AppSidebar() {
@@ -29,10 +29,10 @@ export function AppSidebar() {
           </div>
           <div className="flex flex-col">
             <span className="font-display text-lg font-bold leading-none text-sidebar-foreground">
-              Gran Hotel
+              Mantenimiento
             </span>
             <span className="text-xs font-medium text-muted-foreground">
-              Gestión Residencial
+              Gran Hotel
             </span>
           </div>
         </div>

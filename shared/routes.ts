@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { insertGuestSchema, insertMessageSchema, guests, messages } from './schema';
+import { insertRoomSchema, insertMessageSchema, rooms, messages } from './schema';
 
 export const errorSchemas = {
   validation: z.object({
@@ -15,44 +15,44 @@ export const errorSchemas = {
 };
 
 export const api = {
-  guests: {
+  rooms: {
     list: {
       method: 'GET' as const,
-      path: '/api/guests' as const,
+      path: '/api/rooms' as const,
       responses: {
-        200: z.array(z.custom<typeof guests.$inferSelect>()),
+        200: z.array(z.custom<typeof rooms.$inferSelect>()),
       },
     },
     get: {
       method: 'GET' as const,
-      path: '/api/guests/:roomNumber' as const,
+      path: '/api/rooms/:roomNumber' as const,
       responses: {
-        200: z.custom<typeof guests.$inferSelect>(),
+        200: z.custom<typeof rooms.$inferSelect>(),
         404: errorSchemas.notFound,
       },
     },
     create: {
       method: 'POST' as const,
-      path: '/api/guests' as const,
-      input: insertGuestSchema,
+      path: '/api/rooms' as const,
+      input: insertRoomSchema,
       responses: {
-        201: z.custom<typeof guests.$inferSelect>(),
+        201: z.custom<typeof rooms.$inferSelect>(),
         400: errorSchemas.validation,
       },
     },
     update: {
       method: 'PUT' as const,
-      path: '/api/guests/:id' as const,
-      input: insertGuestSchema.partial(),
+      path: '/api/rooms/:id' as const,
+      input: insertRoomSchema.partial(),
       responses: {
-        200: z.custom<typeof guests.$inferSelect>(),
+        200: z.custom<typeof rooms.$inferSelect>(),
         400: errorSchemas.validation,
         404: errorSchemas.notFound,
       },
     },
     delete: {
       method: 'DELETE' as const,
-      path: '/api/guests/:id' as const,
+      path: '/api/rooms/:id' as const,
       responses: {
         204: z.void(),
         404: errorSchemas.notFound,
@@ -90,6 +90,3 @@ export function buildUrl(path: string, params?: Record<string, string | number>)
   }
   return url;
 }
-
-export type GuestResponse = z.infer<typeof api.guests.list.responses[200]>;
-export type MessageResponse = z.infer<typeof api.messages.list.responses[200]>;

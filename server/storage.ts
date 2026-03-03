@@ -1,47 +1,47 @@
 import { db } from "./db";
 import {
-  guests, messages,
-  type Guest, type InsertGuest,
+  rooms, messages,
+  type Room, type InsertRoom,
   type Message, type InsertMessage
 } from "@shared/schema";
 import { eq, desc } from "drizzle-orm";
 
 export interface IStorage {
-  getGuests(): Promise<Guest[]>;
-  getGuest(roomNumber: string): Promise<Guest | undefined>;
-  createGuest(guest: InsertGuest): Promise<Guest>;
-  updateGuest(id: number, updates: Partial<InsertGuest>): Promise<Guest>;
-  deleteGuest(id: number): Promise<void>;
+  getRooms(): Promise<Room[]>;
+  getRoom(roomNumber: string): Promise<Room | undefined>;
+  createRoom(room: InsertRoom): Promise<Room>;
+  updateRoom(id: number, updates: Partial<InsertRoom>): Promise<Room>;
+  deleteRoom(id: number): Promise<void>;
 
   getMessages(roomNumber: string): Promise<Message[]>;
   createMessage(message: InsertMessage): Promise<Message>;
 }
 
 export class DatabaseStorage implements IStorage {
-  async getGuests(): Promise<Guest[]> {
-    return await db.select().from(guests);
+  async getRooms(): Promise<Room[]> {
+    return await db.select().from(rooms);
   }
 
-  async getGuest(roomNumber: string): Promise<Guest | undefined> {
-    const [guest] = await db.select().from(guests).where(eq(guests.roomNumber, roomNumber));
-    return guest;
+  async getRoom(roomNumber: string): Promise<Room | undefined> {
+    const [room] = await db.select().from(rooms).where(eq(rooms.roomNumber, roomNumber));
+    return room;
   }
 
-  async createGuest(guest: InsertGuest): Promise<Guest> {
-    const [created] = await db.insert(guests).values(guest).returning();
+  async createRoom(room: InsertRoom): Promise<Room> {
+    const [created] = await db.insert(rooms).values(room).returning();
     return created;
   }
 
-  async updateGuest(id: number, updates: Partial<InsertGuest>): Promise<Guest> {
-    const [updated] = await db.update(guests)
+  async updateRoom(id: number, updates: Partial<InsertRoom>): Promise<Room> {
+    const [updated] = await db.update(rooms)
       .set(updates)
-      .where(eq(guests.id, id))
+      .where(eq(rooms.id, id))
       .returning();
     return updated;
   }
 
-  async deleteGuest(id: number): Promise<void> {
-    await db.delete(guests).where(eq(guests.id, id));
+  async deleteRoom(id: number): Promise<void> {
+    await db.delete(rooms).where(eq(rooms.id, id));
   }
 
   async getMessages(roomNumber: string): Promise<Message[]> {
