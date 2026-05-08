@@ -5,24 +5,27 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import NotFound from "@/pages/not-found";
-
 import { AppSidebar } from "@/components/app-sidebar";
 import Dashboard from "@/pages/dashboard";
-import GuestList from "@/pages/guest-list";
-import GuestProfile from "@/pages/guest-profile";
+import SpacesList from "@/pages/spaces-list";
+import SpaceDetail from "@/pages/space-detail";
+import WaUsers from "@/pages/wa-users";
+import Tickets from "@/pages/tickets";
 
 function Router() {
   return (
     <Switch>
-      <Route path="/" component={Dashboard}/>
-      <Route path="/guests" component={GuestList}/>
-      <Route path="/guests/:roomNumber" component={GuestProfile}/>
+      <Route path="/" component={Dashboard} />
+      <Route path="/spaces" component={SpacesList} />
+      <Route path="/spaces/:id" component={SpaceDetail} />
+      <Route path="/usuarios" component={WaUsers} />
+      <Route path="/pendientes" component={Tickets} />
       <Route component={NotFound} />
     </Switch>
   );
 }
 
-function App() {
+export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
@@ -30,11 +33,9 @@ function App() {
           <div className="flex h-screen w-full overflow-hidden bg-background">
             <AppSidebar />
             <div className="flex flex-col flex-1 w-full overflow-hidden">
-              <header className="h-16 flex items-center justify-between px-4 border-b border-border/50 bg-card/50 backdrop-blur-md shrink-0 lg:hidden">
-                <div className="flex items-center gap-3">
-                  <SidebarTrigger data-testid="button-sidebar-toggle" />
-                  <span className="font-display font-semibold text-foreground">Hotel Mantenimiento</span>
-                </div>
+              <header className="h-14 flex items-center px-4 border-b border-border/50 bg-card/80 backdrop-blur-md shrink-0 lg:hidden">
+                <SidebarTrigger data-testid="button-sidebar-toggle" />
+                <span className="ml-3 font-semibold text-foreground">Mantenimiento Hotel</span>
               </header>
               <main className="flex-1 overflow-y-auto">
                 <Router />
@@ -47,5 +48,3 @@ function App() {
     </QueryClientProvider>
   );
 }
-
-export default App;

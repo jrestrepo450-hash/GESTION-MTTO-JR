@@ -4,137 +4,237 @@ import { storage } from "./storage";
 import { api } from "@shared/routes";
 import { z } from "zod";
 
-export async function registerRoutes(
-  httpServer: Server,
-  app: Express
-): Promise<Server> {
-  app.get(api.rooms.list.path, async (req, res) => {
-    const roomsList = await storage.getRooms();
-    res.json(roomsList);
+export async function registerRoutes(httpServer: Server, app: Express): Promise<Server> {
+
+  // ── Spaces ────────────────────────────────────────────────────────────────
+  app.get(api.spaces.list.path, async (req, res) => {
+    res.json(await storage.getSpaces());
   });
 
-  app.get(api.rooms.get.path, async (req, res) => {
-    const room = await storage.getRoom(req.params.roomNumber);
-    if (!room) return res.status(404).json({ message: "Room not found" });
-    res.json(room);
+  app.get(api.spaces.get.path, async (req, res) => {
+    const s = await storage.getSpace(Number(req.params.id));
+    if (!s) return res.status(404).json({ message: "Espacio no encontrado" });
+    res.json(s);
   });
 
-  app.post(api.rooms.create.path, async (req, res) => {
+  app.post(api.spaces.create.path, async (req, res) => {
     try {
-      const input = api.rooms.create.input.parse(req.body);
-      const room = await storage.createRoom(input);
-      res.status(201).json(room);
+      const input = api.spaces.create.input.parse(req.body);
+      res.status(201).json(await storage.createSpace(input));
     } catch (err) {
       if (err instanceof z.ZodError) return res.status(400).json({ message: err.errors[0].message });
-      res.status(500).json({ message: "Internal server error" });
+      res.status(500).json({ message: "Error interno" });
     }
   });
 
-  app.put(api.rooms.update.path, async (req, res) => {
+  app.put(api.spaces.update.path, async (req, res) => {
     try {
-      const input = api.rooms.update.input.parse(req.body);
-      const room = await storage.updateRoom(Number(req.params.id), input);
-      res.json(room);
+      const input = api.spaces.update.input.parse(req.body);
+      res.json(await storage.updateSpace(Number(req.params.id), input));
     } catch (err) {
-      res.status(500).json({ message: "Internal server error" });
+      res.status(500).json({ message: "Error interno" });
     }
   });
 
-  app.delete(api.rooms.delete.path, async (req, res) => {
+  app.delete(api.spaces.delete.path, async (req, res) => {
+    await storage.deleteSpace(Number(req.params.id));
+    res.status(204).end();
+  });
+
+  // ── Space Items ───────────────────────────────────────────────────────────
+  app.get(api.spaceItems.list.path, async (req, res) => {
+    res.json(await storage.getSpaceItems(Number(req.params.spaceId)));
+  });
+
+  app.post(api.spaceItems.create.path, async (req, res) => {
     try {
-      await storage.deleteRoom(Number(req.params.id));
-      res.status(204).end();
+      const body = { ...req.body, spaceId: Number(req.params.spaceId) };
+      res.status(201).json(await storage.createSpaceItem(body));
     } catch (err) {
-      res.status(500).json({ message: "Internal server error" });
+      res.status(500).json({ message: "Error interno" });
     }
   });
 
+  app.put(api.spaceItems.update.path, async (req, res) => {
+    try {
+      res.json(await storage.updateSpaceItem(Number(req.params.id), req.body));
+    } catch (err) {
+      res.status(500).json({ message: "Error interno" });
+    }
+  });
+
+  app.delete(api.spaceItems.delete.path, async (req, res) => {
+    await storage.deleteSpaceItem(Number(req.params.id));
+    res.status(204).end();
+  });
+
+  // ── WA Users ──────────────────────────────────────────────────────────────
+  app.get(api.waUsers.list.path, async (req, res) => {
+    res.json(await storage.getWaUsers());
+  });
+
+  app.post(api.waUsers.create.path, async (req, res) => {
+    try {
+      const input = api.waUsers.create.input.parse(req.body);
+      res.status(201).json(await storage.createWaUser(input));
+    } catch (err) {
+      if (err instanceof z.ZodError) return res.status(400).json({ message: err.errors[0].message });
+      res.status(500).json({ message: "Error interno" });
+    }
+  });
+
+  app.put(api.waUsers.update.path, async (req, res) => {
+    try {
+      const input = api.waUsers.update.input.parse(req.body);
+      res.json(await storage.updateWaUser(Number(req.params.id), input));
+    } catch (err) {
+      res.status(500).json({ message: "Error interno" });
+    }
+  });
+
+  app.delete(api.waUsers.delete.path, async (req, res) => {
+    await storage.deleteWaUser(Number(req.params.id));
+    res.status(204).end();
+  });
+
+  // ── Tickets ───────────────────────────────────────────────────────────────
+  app.get(api.tickets.list.path, async (req, res) => {
+    const filters: any = {};
+    if (req.query.spaceId) filters.spaceId = Number(req.query.spaceId);
+    if (req.query.status) filters.status = String(req.query.status);
+    res.json(await storage.getTickets(filters));
+  });
+
+  app.get(api.tickets.get.path, async (req, res) => {
+    const t = await storage.getTicket(Number(req.params.id));
+    if (!t) return res.status(404).json({ message: "Ticket no encontrado" });
+    res.json(t);
+  });
+
+  app.post(api.tickets.create.path, async (req, res) => {
+    try {
+      const body = { ...req.body };
+      if (body.spaceId) body.spaceId = Number(body.spaceId);
+      if (body.itemId) body.itemId = Number(body.itemId) || null;
+      if (body.assignedToId) body.assignedToId = Number(body.assignedToId) || null;
+      if (body.createdById) body.createdById = Number(body.createdById) || null;
+      res.status(201).json(await storage.createTicket(body));
+    } catch (err) {
+      res.status(500).json({ message: "Error interno" });
+    }
+  });
+
+  app.put(api.tickets.update.path, async (req, res) => {
+    try {
+      const body = { ...req.body };
+      if (body.spaceId) body.spaceId = Number(body.spaceId);
+      if (body.itemId !== undefined) body.itemId = body.itemId ? Number(body.itemId) : null;
+      if (body.assignedToId !== undefined) body.assignedToId = body.assignedToId ? Number(body.assignedToId) : null;
+      res.json(await storage.updateTicket(Number(req.params.id), body));
+    } catch (err) {
+      res.status(500).json({ message: "Error interno" });
+    }
+  });
+
+  app.delete(api.tickets.delete.path, async (req, res) => {
+    await storage.deleteTicket(Number(req.params.id));
+    res.status(204).end();
+  });
+
+  // ── Messages ──────────────────────────────────────────────────────────────
   app.get(api.messages.list.path, async (req, res) => {
-    const messagesList = await storage.getMessages(req.params.roomNumber);
-    res.json(messagesList);
+    res.json(await storage.getMessages(req.params.spaceCode));
   });
 
   app.post(api.messages.create.path, async (req, res) => {
     try {
       const input = api.messages.create.input.parse(req.body);
-      const content = input.content.toLowerCase();
-      const room = await storage.getRoom(input.roomNumber);
-      
-      if (room) {
-        const updates: any = {};
-        if (content.includes("energía") || content.includes("luz")) updates.energyStatus = content.includes("ok") ? "ok" : "mantenimiento";
-        if (content.includes("aire") || content.includes("ac")) updates.acStatus = content.includes("ok") ? "ok" : "mantenimiento";
-        if (content.includes("humo") || content.includes("detector")) updates.smokeDetectorStatus = content.includes("ok") ? "ok" : "mantenimiento";
-        if (content.includes("pintura")) updates.paintStatus = content.includes("ok") ? "ok" : "mantenimiento";
-        
-        if (Object.keys(updates).length > 0) {
-          await storage.updateRoom(room.id, updates);
-          input.isMaintenanceUpdate = true;
-        }
-      }
-
       const message = await storage.createMessage(input);
       res.status(201).json(message);
     } catch (err) {
-      res.status(500).json({ message: "Internal server error" });
+      res.status(500).json({ message: "Error interno" });
     }
   });
 
-  // Webhook for WhatsApp
-  app.post('/api/webhook/whatsapp', async (req, res) => {
-    const body = req.body;
-    let content = body.body || '';
-    const sender = body.from || 'WhatsApp';
-    
-    const match = content.match(/Room\s*(\w+)/i) || content.match(/Habitaci[oó]n\s*(\w+)/i) || content.match(/^(\d+)/);
-    const roomNumber = match ? match[1] : 'UNKNOWN';
+  // ── WhatsApp Webhook ──────────────────────────────────────────────────────
+  app.post("/api/webhook/whatsapp", async (req, res) => {
+    try {
+      const body = req.body;
+      const content: string = body.body || body.text || "";
+      const sender: string = body.from || body.sender || "WhatsApp";
 
-    if (roomNumber !== 'UNKNOWN') {
-      const room = await storage.getRoom(roomNumber);
-      const updates: any = {};
-      const lowContent = content.toLowerCase();
-      
-      if (lowContent.includes("energía")) updates.energyStatus = lowContent.includes("ok") ? "ok" : "mantenimiento";
-      if (lowContent.includes("aire")) updates.acStatus = lowContent.includes("ok") ? "ok" : "mantenimiento";
-      if (lowContent.includes("humo")) updates.smokeDetectorStatus = lowContent.includes("ok") ? "ok" : "mantenimiento";
-      if (lowContent.includes("pintura")) updates.paintStatus = lowContent.includes("ok") ? "ok" : "mantenimiento";
+      // Match space code at start: "101: message", "LOBBY: message", "Habitación 101: message"
+      const codeMatch =
+        content.match(/^(\w[\w-]*)\s*:/i) ||
+        content.match(/Habitaci[oó]n\s+(\w+)/i) ||
+        content.match(/Espacio\s+(\w+)/i);
+      const spaceCode = codeMatch ? codeMatch[1].toUpperCase() : null;
 
-      if (room && Object.keys(updates).length > 0) {
-        await storage.updateRoom(room.id, updates);
+      if (spaceCode) {
+        const space = await storage.getSpaceByCode(spaceCode);
+        if (space) {
+          // Find or create the WA user
+          const waUser = await storage.getWaUserByPhone(sender);
+
+          await storage.createMessage({
+            spaceCode,
+            content,
+            sender: waUser ? waUser.name : sender,
+            isMaintenanceUpdate: false,
+          });
+
+          // Auto-create ticket if message contains keywords
+          const low = content.toLowerCase();
+          if (low.includes("pendiente") || low.includes("dañado") || low.includes("avería") || low.includes("falla")) {
+            await storage.createTicket({
+              spaceId: space.id,
+              title: content.length > 80 ? content.slice(0, 80) + "…" : content,
+              description: content,
+              status: "pendiente",
+              priority: "media",
+              assignedToId: waUser?.id ?? null,
+              createdById: waUser?.id ?? null,
+            });
+          }
+        }
       }
 
-      await storage.createMessage({
-        roomNumber,
-        content,
-        sender,
-        isMaintenanceUpdate: Object.keys(updates).length > 0
-      });
+      res.status(200).json({ success: true });
+    } catch (err) {
+      console.error("Webhook error:", err);
+      res.status(500).json({ success: false });
     }
-
-    res.status(200).json({ success: true });
   });
 
-  // Seed initial rooms
-  const existingRooms = await storage.getRooms();
-  if (existingRooms.length === 0) {
-    await storage.createRoom({
-      roomNumber: "101",
-      name: "Técnico de Turno",
-      energyStatus: "ok",
-      acStatus: "mantenimiento",
-      smokeDetectorStatus: "ok",
-      paintStatus: "ok",
-      notes: "Aire acondicionado requiere cambio de filtro.",
-    });
-    await storage.createRoom({
-      roomNumber: "102",
-      name: "Mantenimiento General",
-      energyStatus: "ok",
-      acStatus: "ok",
-      smokeDetectorStatus: "mantenimiento",
-      paintStatus: "ok",
-      notes: "Detector de humo en revisión.",
-    });
+  // ── Seed ──────────────────────────────────────────────────────────────────
+  const existingSpaces = await storage.getSpaces();
+  if (existingSpaces.length === 0) {
+    const h101 = await storage.createSpace({ code: "101", name: "Habitación 101", type: "habitacion", notes: "" });
+    const h102 = await storage.createSpace({ code: "102", name: "Habitación 102", type: "habitacion", notes: "" });
+    const lobby = await storage.createSpace({ code: "LOBBY", name: "Lobby Principal", type: "lobby", notes: "" });
+    const cocina = await storage.createSpace({ code: "COCINA", name: "Cocina Central", type: "cocina", notes: "" });
+    const sub = await storage.createSpace({ code: "SUB-1", name: "Subestación 1", type: "subestacion", notes: "" });
+
+    await storage.createSpaceItem({ spaceId: h101.id, name: "Aire acondicionado", status: "ok", notes: "" });
+    await storage.createSpaceItem({ spaceId: h101.id, name: "TV 55\"", status: "mantenimiento", notes: "Pantalla con líneas" });
+    await storage.createSpaceItem({ spaceId: h101.id, name: "Cama King", status: "ok", notes: "" });
+    await storage.createSpaceItem({ spaceId: h101.id, name: "Detector de humo", status: "ok", notes: "" });
+    await storage.createSpaceItem({ spaceId: h102.id, name: "Aire acondicionado", status: "ok", notes: "" });
+    await storage.createSpaceItem({ spaceId: h102.id, name: "Vidrio baño", status: "fuera_de_servicio", notes: "Roto" });
+    await storage.createSpaceItem({ spaceId: lobby.id, name: "Luces LED", status: "ok", notes: "" });
+    await storage.createSpaceItem({ spaceId: lobby.id, name: "Pintura paredes", status: "mantenimiento", notes: "Manchas" });
+    await storage.createSpaceItem({ spaceId: sub.id, name: "Transformador principal", status: "ok", notes: "" });
+    await storage.createSpaceItem({ spaceId: sub.id, name: "UPS respaldo", status: "ok", notes: "" });
+
+    const u1 = await storage.createWaUser({ name: "Carlos Técnico", phone: "+573001234567", role: "tecnico", active: true });
+    const u2 = await storage.createWaUser({ name: "Ana Supervisora", phone: "+573009876543", role: "supervisor", active: true });
+
+    await storage.createTicket({ spaceId: h101.id, title: "TV con pantalla dañada", description: "Pantalla tiene líneas horizontales visibles", status: "pendiente", priority: "alta", assignedToId: u1.id, createdById: u2.id });
+    await storage.createTicket({ spaceId: h102.id, title: "Vidrio de baño roto", description: "Vidrio de mampara en baño está roto, riesgo de seguridad", status: "en_progreso", priority: "urgente", assignedToId: u1.id, createdById: u2.id });
+    await storage.createTicket({ spaceId: lobby.id, title: "Manchas en paredes lobby", description: "Manchas de humedad en pared norte del lobby", status: "pendiente", priority: "media", assignedToId: null, createdById: u2.id });
+
+    await storage.createMessage({ spaceCode: "101", content: "Habitación 101: TV tiene líneas en pantalla", sender: "Carlos Técnico", isMaintenanceUpdate: true });
+    await storage.createMessage({ spaceCode: "101", content: "Revisado, se necesita reemplazo del panel", sender: "Ana Supervisora", isMaintenanceUpdate: false });
   }
 
   return httpServer;

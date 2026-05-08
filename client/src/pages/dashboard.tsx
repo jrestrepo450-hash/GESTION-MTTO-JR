@@ -1,72 +1,126 @@
-import { useRooms } from "@/hooks/use-rooms";
-import { Wrench, Zap, Wind, ShieldAlert, Paintbrush } from "lucide-react";
-import { Card, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { Link } from "wouter";
+import { useSpaces } from "@/hooks/use-spaces";
+import { useTickets } from "@/hooks/use-tickets";
+import { useWaUsers } from "@/hooks/use-wa-users";
+import { Card, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Wrench, MapPin, Users, ClipboardList, AlertTriangle, CheckCircle2 } from "lucide-react";
+import { SPACE_TYPE_LABELS, type SpaceType } from "@shared/schema";
 
 export default function Dashboard() {
-  const { data: rooms, isLoading } = useRooms();
+  const { data: spaces } = useSpaces();
+  const { data: tickets } = useTickets();
+  const { data: waUsers } = useWaUsers();
 
-  const issues = rooms?.filter(r => 
-    r.energyStatus !== "ok" || 
-    r.acStatus !== "ok" || 
-    r.smokeDetectorStatus !== "ok" || 
-    r.paintStatus !== "ok"
-  ) || [];
+  const pendientes = tickets?.filter(t => t.status === "pendiente") || [];
+  const urgentes = tickets?.filter(t => t.priority === "urgente" && t.status !== "resuelto") || [];
+  const resueltos = tickets?.filter(t => t.status === "resuelto") || [];
 
   return (
-    <div className="p-6 md:p-10 space-y-8 max-w-7xl mx-auto w-full">
-      <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
-        <div>
-          <h1 className="text-4xl md:text-5xl font-display font-bold text-primary mb-2">Estado Técnico</h1>
-          <p className="text-muted-foreground text-lg">Resumen de mantenimiento del hotel.</p>
-        </div>
+    <div className="p-6 md:p-10 max-w-7xl mx-auto space-y-8">
+      <div>
+        <h1 className="text-3xl font-bold text-foreground">Panel de Control</h1>
+        <p className="text-muted-foreground mt-1">Estado general del sistema de mantenimiento</p>
       </div>
 
-      {isLoading ? (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 animate-pulse">
-          {[1, 2, 3].map(i => <div key={i} className="h-32 bg-border/50 rounded-2xl"></div>)}
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-          <Card className="rounded-2xl border-none shadow-lg bg-gradient-to-br from-red-500 to-red-600 text-white hover-elevate">
-            <CardContent className="p-6 flex items-center justify-between">
-              <div>
-                <p className="text-white/80 font-medium mb-1">Pendientes Mantenimiento</p>
-                <h3 className="text-4xl font-display font-bold">{issues.length}</h3>
-              </div>
-              <div className="h-14 w-14 rounded-full bg-white/10 flex items-center justify-center backdrop-blur-sm">
-                <Wrench className="h-7 w-7" />
-              </div>
-            </CardContent>
-          </Card>
+      {/* Stats */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <Card className="border-none shadow-md bg-gradient-to-br from-primary to-primary/80">
+          <CardContent className="p-5 flex items-center justify-between">
+            <div>
+              <p className="text-primary-foreground/70 text-sm font-medium">Total Espacios</p>
+              <h3 className="text-3xl font-bold text-primary-foreground">{spaces?.length ?? 0}</h3>
+            </div>
+            <MapPin className="h-8 w-8 text-primary-foreground/40" />
+          </CardContent>
+        </Card>
+        <Card className="border-none shadow-md bg-gradient-to-br from-red-500 to-red-600">
+          <CardContent className="p-5 flex items-center justify-between">
+            <div>
+              <p className="text-white/70 text-sm font-medium">Pendientes</p>
+              <h3 className="text-3xl font-bold text-white">{pendientes.length}</h3>
+            </div>
+            <Wrench className="h-8 w-8 text-white/40" />
+          </CardContent>
+        </Card>
+        <Card className="border-none shadow-md bg-gradient-to-br from-amber-500 to-amber-600">
+          <CardContent className="p-5 flex items-center justify-between">
+            <div>
+              <p className="text-white/70 text-sm font-medium">Urgentes</p>
+              <h3 className="text-3xl font-bold text-white">{urgentes.length}</h3>
+            </div>
+            <AlertTriangle className="h-8 w-8 text-white/40" />
+          </CardContent>
+        </Card>
+        <Card className="border-none shadow-md bg-gradient-to-br from-green-500 to-green-600">
+          <CardContent className="p-5 flex items-center justify-between">
+            <div>
+              <p className="text-white/70 text-sm font-medium">Resueltos</p>
+              <h3 className="text-3xl font-bold text-white">{resueltos.length}</h3>
+            </div>
+            <CheckCircle2 className="h-8 w-8 text-white/40" />
+          </CardContent>
+        </Card>
+      </div>
 
-          <Card className="rounded-2xl border border-border/50 shadow-md bg-card hover-elevate">
-            <CardContent className="p-6 flex items-center justify-between">
-              <div>
-                <p className="text-muted-foreground font-medium mb-1">Total Habitaciones</p>
-                <h3 className="text-4xl font-display font-bold text-foreground">{rooms?.length || 0}</h3>
-              </div>
-              <div className="h-14 w-14 rounded-full bg-secondary flex items-center justify-center">
-                <Zap className="h-7 w-7 text-primary" />
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-      )}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Recent Tickets */}
+        <Card className="border border-border/50 shadow-sm">
+          <CardContent className="p-5">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="font-semibold text-foreground flex items-center gap-2"><ClipboardList className="h-4 w-4 text-primary" /> Últimos Pendientes</h2>
+              <Button asChild variant="ghost" size="sm"><Link href="/pendientes">Ver todos</Link></Button>
+            </div>
+            <div className="space-y-3">
+              {tickets?.slice(0, 5).map(t => (
+                <div key={t.id} className="flex items-center justify-between gap-3 p-3 rounded-xl bg-secondary/30">
+                  <div className="min-w-0">
+                    <p className="font-medium text-sm truncate">{t.title}</p>
+                    <p className="text-xs text-muted-foreground">{t.space?.name}</p>
+                  </div>
+                  <div className="flex gap-2 shrink-0">
+                    <Badge variant="outline" className={`text-xs ${
+                      t.priority === "urgente" ? "border-red-500 text-red-500" :
+                      t.priority === "alta" ? "border-amber-500 text-amber-500" : ""
+                    }`}>{t.priority}</Badge>
+                    <Badge variant="outline" className={`text-xs ${
+                      t.status === "resuelto" ? "border-green-500 text-green-500" :
+                      t.status === "en_progreso" ? "border-blue-500 text-blue-500" : ""
+                    }`}>{t.status}</Badge>
+                  </div>
+                </div>
+              ))}
+              {!tickets?.length && <p className="text-muted-foreground text-sm text-center py-4">Sin pendientes registrados</p>}
+            </div>
+          </CardContent>
+        </Card>
 
-      <div className="mt-12 bg-card border border-border/50 rounded-3xl p-8 shadow-sm">
-        <div className="max-w-2xl">
-          <h2 className="text-2xl font-display font-bold text-foreground mb-4">Control en Tiempo Real</h2>
-          <p className="text-muted-foreground text-lg mb-8">
-            Los mensajes de WhatsApp que incluyan palabras clave como "Aire OK" o "Energía mantenimiento" actualizarán automáticamente el estado de la habitación correspondiente.
-          </p>
-          <div className="flex gap-4">
-            <Button asChild size="lg" className="rounded-xl shadow-md bg-primary">
-              <Link href="/guests">Ver Todas las Habitaciones</Link>
-            </Button>
-          </div>
-        </div>
+        {/* Spaces Overview */}
+        <Card className="border border-border/50 shadow-sm">
+          <CardContent className="p-5">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="font-semibold text-foreground flex items-center gap-2"><MapPin className="h-4 w-4 text-primary" /> Espacios Registrados</h2>
+              <Button asChild variant="ghost" size="sm"><Link href="/spaces">Ver todos</Link></Button>
+            </div>
+            <div className="space-y-2">
+              {spaces?.slice(0, 6).map(s => (
+                <Link key={s.id} href={`/spaces/${s.id}`}>
+                  <div className="flex items-center justify-between p-3 rounded-xl bg-secondary/30 hover-elevate cursor-pointer">
+                    <div>
+                      <p className="font-medium text-sm">{s.name}</p>
+                      <p className="text-xs text-muted-foreground">{s.code}</p>
+                    </div>
+                    <Badge variant="secondary" className="text-xs">
+                      {SPACE_TYPE_LABELS[s.type as SpaceType] || s.type}
+                    </Badge>
+                  </div>
+                </Link>
+              ))}
+              {!spaces?.length && <p className="text-muted-foreground text-sm text-center py-4">Sin espacios registrados</p>}
+            </div>
+          </CardContent>
+        </Card>
       </div>
     </div>
   );

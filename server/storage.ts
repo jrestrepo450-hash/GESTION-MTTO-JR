@@ -1,59 +1,154 @@
 import { db } from "./db";
 import {
-  rooms, messages,
-  type Room, type InsertRoom,
-  type Message, type InsertMessage
+  spaces, spaceItems, waUsers, tickets, messages,
+  type Space, type InsertSpace,
+  type SpaceItem, type InsertSpaceItem,
+  type WaUser, type InsertWaUser,
+  type Ticket, type InsertTicket, type TicketWithRelations,
+  type Message, type InsertMessage,
 } from "@shared/schema";
-import { eq, desc } from "drizzle-orm";
+import { eq, desc, asc } from "drizzle-orm";
 
 export interface IStorage {
-  getRooms(): Promise<Room[]>;
-  getRoom(roomNumber: string): Promise<Room | undefined>;
-  createRoom(room: InsertRoom): Promise<Room>;
-  updateRoom(id: number, updates: Partial<InsertRoom>): Promise<Room>;
-  deleteRoom(id: number): Promise<void>;
+  // Spaces
+  getSpaces(): Promise<Space[]>;
+  getSpace(id: number): Promise<Space | undefined>;
+  getSpaceByCode(code: string): Promise<Space | undefined>;
+  createSpace(space: InsertSpace): Promise<Space>;
+  updateSpace(id: number, updates: Partial<InsertSpace>): Promise<Space>;
+  deleteSpace(id: number): Promise<void>;
 
-  getMessages(roomNumber: string): Promise<Message[]>;
+  // Space Items
+  getSpaceItems(spaceId: number): Promise<SpaceItem[]>;
+  createSpaceItem(item: InsertSpaceItem): Promise<SpaceItem>;
+  updateSpaceItem(id: number, updates: Partial<InsertSpaceItem>): Promise<SpaceItem>;
+  deleteSpaceItem(id: number): Promise<void>;
+
+  // WA Users
+  getWaUsers(): Promise<WaUser[]>;
+  getWaUserByPhone(phone: string): Promise<WaUser | undefined>;
+  createWaUser(user: InsertWaUser): Promise<WaUser>;
+  updateWaUser(id: number, updates: Partial<InsertWaUser>): Promise<WaUser>;
+  deleteWaUser(id: number): Promise<void>;
+
+  // Tickets
+  getTickets(filters?: { spaceId?: number; status?: string }): Promise<TicketWithRelations[]>;
+  getTicket(id: number): Promise<TicketWithRelations | undefined>;
+  createTicket(ticket: InsertTicket): Promise<Ticket>;
+  updateTicket(id: number, updates: Partial<InsertTicket>): Promise<Ticket>;
+  deleteTicket(id: number): Promise<void>;
+
+  // Messages
+  getMessages(spaceCode: string): Promise<Message[]>;
   createMessage(message: InsertMessage): Promise<Message>;
 }
 
 export class DatabaseStorage implements IStorage {
-  async getRooms(): Promise<Room[]> {
-    return await db.select().from(rooms);
+  // ── Spaces ──────────────────────────────────────────────
+  async getSpaces(): Promise<Space[]> {
+    return db.select().from(spaces).orderBy(asc(spaces.code));
+  }
+  async getSpace(id: number): Promise<Space | undefined> {
+    const [s] = await db.select().from(spaces).where(eq(spaces.id, id));
+    return s;
+  }
+  async getSpaceByCode(code: string): Promise<Space | undefined> {
+    const [s] = await db.select().from(spaces).where(eq(spaces.code, code));
+    return s;
+  }
+  async createSpace(space: InsertSpace): Promise<Space> {
+    const [s] = await db.insert(spaces).values(space).returning();
+    return s;
+  }
+  async updateSpace(id: number, updates: Partial<InsertSpace>): Promise<Space> {
+    const [s] = await db.update(spaces).set(updates).where(eq(spaces.id, id)).returning();
+    return s;
+  }
+  async deleteSpace(id: number): Promise<void> {
+    await db.delete(spaces).where(eq(spaces.id, id));
   }
 
-  async getRoom(roomNumber: string): Promise<Room | undefined> {
-    const [room] = await db.select().from(rooms).where(eq(rooms.roomNumber, roomNumber));
-    return room;
+  // ── Space Items ──────────────────────────────────────────
+  async getSpaceItems(spaceId: number): Promise<SpaceItem[]> {
+    return db.select().from(spaceItems).where(eq(spaceItems.spaceId, spaceId));
+  }
+  async createSpaceItem(item: InsertSpaceItem): Promise<SpaceItem> {
+    const [i] = await db.insert(spaceItems).values(item).returning();
+    return i;
+  }
+  async updateSpaceItem(id: number, updates: Partial<InsertSpaceItem>): Promise<SpaceItem> {
+    const [i] = await db.update(spaceItems).set({ ...updates, lastChecked: new Date() }).where(eq(spaceItems.id, id)).returning();
+    return i;
+  }
+  async deleteSpaceItem(id: number): Promise<void> {
+    await db.delete(spaceItems).where(eq(spaceItems.id, id));
   }
 
-  async createRoom(room: InsertRoom): Promise<Room> {
-    const [created] = await db.insert(rooms).values(room).returning();
-    return created;
+  // ── WA Users ────────────────────────────────────────────
+  async getWaUsers(): Promise<WaUser[]> {
+    return db.select().from(waUsers).orderBy(asc(waUsers.name));
+  }
+  async getWaUserByPhone(phone: string): Promise<WaUser | undefined> {
+    const [u] = await db.select().from(waUsers).where(eq(waUsers.phone, phone));
+    return u;
+  }
+  async createWaUser(user: InsertWaUser): Promise<WaUser> {
+    const [u] = await db.insert(waUsers).values(user).returning();
+    return u;
+  }
+  async updateWaUser(id: number, updates: Partial<InsertWaUser>): Promise<WaUser> {
+    const [u] = await db.update(waUsers).set(updates).where(eq(waUsers.id, id)).returning();
+    return u;
+  }
+  async deleteWaUser(id: number): Promise<void> {
+    await db.delete(waUsers).where(eq(waUsers.id, id));
   }
 
-  async updateRoom(id: number, updates: Partial<InsertRoom>): Promise<Room> {
-    const [updated] = await db.update(rooms)
-      .set(updates)
-      .where(eq(rooms.id, id))
-      .returning();
-    return updated;
+  // ── Tickets ─────────────────────────────────────────────
+  async getTickets(filters?: { spaceId?: number; status?: string }): Promise<TicketWithRelations[]> {
+    const rows = await db.select().from(tickets).orderBy(desc(tickets.createdAt));
+    const result: TicketWithRelations[] = [];
+    for (const t of rows) {
+      if (filters?.spaceId && t.spaceId !== filters.spaceId) continue;
+      if (filters?.status && t.status !== filters.status) continue;
+      const [space] = await db.select().from(spaces).where(eq(spaces.id, t.spaceId));
+      const item = t.itemId ? (await db.select().from(spaceItems).where(eq(spaceItems.id, t.itemId)))[0] ?? null : null;
+      const assignedTo = t.assignedToId ? (await db.select().from(waUsers).where(eq(waUsers.id, t.assignedToId)))[0] ?? null : null;
+      const createdBy = t.createdById ? (await db.select().from(waUsers).where(eq(waUsers.id, t.createdById)))[0] ?? null : null;
+      result.push({ ...t, space, item, assignedTo, createdBy });
+    }
+    return result;
+  }
+  async getTicket(id: number): Promise<TicketWithRelations | undefined> {
+    const [t] = await db.select().from(tickets).where(eq(tickets.id, id));
+    if (!t) return undefined;
+    const [space] = await db.select().from(spaces).where(eq(spaces.id, t.spaceId));
+    const item = t.itemId ? (await db.select().from(spaceItems).where(eq(spaceItems.id, t.itemId)))[0] ?? null : null;
+    const assignedTo = t.assignedToId ? (await db.select().from(waUsers).where(eq(waUsers.id, t.assignedToId)))[0] ?? null : null;
+    const createdBy = t.createdById ? (await db.select().from(waUsers).where(eq(waUsers.id, t.createdById)))[0] ?? null : null;
+    return { ...t, space, item, assignedTo, createdBy };
+  }
+  async createTicket(ticket: InsertTicket): Promise<Ticket> {
+    const [t] = await db.insert(tickets).values(ticket).returning();
+    return t;
+  }
+  async updateTicket(id: number, updates: Partial<InsertTicket>): Promise<Ticket> {
+    const extra: any = {};
+    if (updates.status === "resuelto") extra.resolvedAt = new Date();
+    const [t] = await db.update(tickets).set({ ...updates, ...extra }).where(eq(tickets.id, id)).returning();
+    return t;
+  }
+  async deleteTicket(id: number): Promise<void> {
+    await db.delete(tickets).where(eq(tickets.id, id));
   }
 
-  async deleteRoom(id: number): Promise<void> {
-    await db.delete(rooms).where(eq(rooms.id, id));
+  // ── Messages ─────────────────────────────────────────────
+  async getMessages(spaceCode: string): Promise<Message[]> {
+    return db.select().from(messages).where(eq(messages.spaceCode, spaceCode)).orderBy(asc(messages.receivedAt));
   }
-
-  async getMessages(roomNumber: string): Promise<Message[]> {
-    return await db.select()
-      .from(messages)
-      .where(eq(messages.roomNumber, roomNumber))
-      .orderBy(desc(messages.receivedAt));
-  }
-
   async createMessage(message: InsertMessage): Promise<Message> {
-    const [created] = await db.insert(messages).values(message).returning();
-    return created;
+    const [m] = await db.insert(messages).values(message).returning();
+    return m;
   }
 }
 

@@ -1,12 +1,13 @@
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { api, buildUrl } from "@shared/routes";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import { type Message, type InsertMessage } from "@shared/schema";
+import type { Message, InsertMessage } from "@shared/schema";
 
-export function useMessages(roomNumber: string) {
+export function useMessages(spaceCode: string) {
   return useQuery<Message[]>({
-    queryKey: [buildUrl(api.messages.list.path, { roomNumber })],
-    enabled: !!roomNumber,
+    queryKey: [buildUrl(api.messages.list.path, { spaceCode })],
+    enabled: !!spaceCode,
+    refetchInterval: 5000, // poll every 5 seconds for real-time feel
   });
 }
 
@@ -16,9 +17,8 @@ export function useCreateMessage() {
       const res = await apiRequest("POST", api.messages.create.path, message);
       return res.json();
     },
-    onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: [buildUrl(api.messages.list.path, { roomNumber: variables.roomNumber })] });
-      queryClient.invalidateQueries({ queryKey: [buildUrl(api.rooms.get.path, { roomNumber: variables.roomNumber })] });
+    onSuccess: (_, v) => {
+      queryClient.invalidateQueries({ queryKey: [buildUrl(api.messages.list.path, { spaceCode: v.spaceCode })] });
     },
   });
 }

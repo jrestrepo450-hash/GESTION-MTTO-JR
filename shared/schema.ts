@@ -1,35 +1,115 @@
-import { pgTable, text, serial, timestamp, boolean } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, timestamp, boolean, integer } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
-export const rooms = pgTable("rooms", {
+export const SPACE_TYPES = [
+  "habitacion",
+  "subestacion",
+  "area_publica",
+  "cocina",
+  "restaurante",
+  "lobby",
+  "oficina",
+  "bodega",
+  "otro",
+] as const;
+export type SpaceType = typeof SPACE_TYPES[number];
+
+export const SPACE_TYPE_LABELS: Record<SpaceType, string> = {
+  habitacion: "Habitación",
+  subestacion: "Subestación",
+  area_publica: "Área Pública",
+  cocina: "Cocina",
+  restaurante: "Restaurante",
+  lobby: "Lobby",
+  oficina: "Oficina",
+  bodega: "Bodega",
+  otro: "Otro",
+};
+
+export const TICKET_STATUS = ["pendiente", "en_progreso", "resuelto"] as const;
+export type TicketStatus = typeof TICKET_STATUS[number];
+
+export const TICKET_PRIORITY = ["baja", "media", "alta", "urgente"] as const;
+export type TicketPriority = typeof TICKET_PRIORITY[number];
+
+// ─── Spaces ──────────────────────────────────────────────────────────────────
+export const spaces = pgTable("spaces", {
   id: serial("id").primaryKey(),
-  roomNumber: text("room_number").notNull().unique(),
-  name: text("name").notNull(), // Responsible person or Current Guest
-  
-  // Maintenance Fields
-  energyStatus: text("energy_status").default("ok"), // e.g., "ok", "issue", "maintenance"
-  acStatus: text("ac_status").default("ok"),
-  smokeDetectorStatus: text("smoke_detector_status").default("ok"),
-  paintStatus: text("paint_status").default("ok"),
-  
-  lastMaintenance: timestamp("last_maintenance").defaultNow(),
+  code: text("code").notNull().unique(), // e.g. "101", "LOBBY-1", "COCINA"
+  name: text("name").notNull(),
+  type: text("type").notNull().default("habitacion"),
   notes: text("notes"),
+  createdAt: timestamp("created_at").defaultNow(),
 });
 
+// ─── Space Items ──────────────────────────────────────────────────────────────
+export const spaceItems = pgTable("space_items", {
+  id: serial("id").primaryKey(),
+  spaceId: integer("space_id").notNull().references(() => spaces.id, { onDelete: "cascade" }),
+  name: text("name").notNull(), // e.g. "Aire acondicionado", "TV", "Cama"
+  status: text("status").notNull().default("ok"), // "ok" | "mantenimiento" | "fuera_de_servicio"
+  notes: text("notes"),
+  lastChecked: timestamp("last_checked").defaultNow(),
+});
+
+// ─── WhatsApp Users ───────────────────────────────────────────────────────────
+export const waUsers = pgTable("wa_users", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  phone: text("phone").notNull().unique(), // WhatsApp phone number
+  role: text("role").notNull().default("tecnico"), // "tecnico" | "supervisor" | "recepcion"
+  active: boolean("active").default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// ─── Tickets / Pendientes ─────────────────────────────────────────────────────
+export const tickets = pgTable("tickets", {
+  id: serial("id").primaryKey(),
+  spaceId: integer("space_id").notNull().references(() => spaces.id, { onDelete: "cascade" }),
+  itemId: integer("item_id").references(() => spaceItems.id, { onDelete: "set null" }),
+  title: text("title").notNull(),
+  description: text("description"),
+  status: text("status").notNull().default("pendiente"),
+  priority: text("priority").notNull().default("media"),
+  assignedToId: integer("assigned_to_id").references(() => waUsers.id, { onDelete: "set null" }),
+  createdById: integer("created_by_id").references(() => waUsers.id, { onDelete: "set null" }),
+  resolvedAt: timestamp("resolved_at"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// ─── Messages ─────────────────────────────────────────────────────────────────
 export const messages = pgTable("messages", {
   id: serial("id").primaryKey(),
-  roomNumber: text("room_number").notNull(),
+  spaceCode: text("space_code").notNull(), // linked by space code
   content: text("content").notNull(),
-  sender: text("sender").notNull(),
+  sender: text("sender").notNull(), // phone number or name
   isMaintenanceUpdate: boolean("is_maintenance_update").default(false),
   receivedAt: timestamp("received_at").defaultNow(),
 });
 
-export const insertRoomSchema = createInsertSchema(rooms).omit({ id: true, lastMaintenance: true });
+// ─── Insert schemas ───────────────────────────────────────────────────────────
+export const insertSpaceSchema = createInsertSchema(spaces).omit({ id: true, createdAt: true });
+export const insertSpaceItemSchema = createInsertSchema(spaceItems).omit({ id: true, lastChecked: true });
+export const insertWaUserSchema = createInsertSchema(waUsers).omit({ id: true, createdAt: true });
+export const insertTicketSchema = createInsertSchema(tickets).omit({ id: true, createdAt: true, resolvedAt: true });
 export const insertMessageSchema = createInsertSchema(messages).omit({ id: true, receivedAt: true });
 
-export type Room = typeof rooms.$inferSelect;
-export type InsertRoom = z.infer<typeof insertRoomSchema>;
+// ─── Types ────────────────────────────────────────────────────────────────────
+export type Space = typeof spaces.$inferSelect;
+export type InsertSpace = z.infer<typeof insertSpaceSchema>;
+export type SpaceItem = typeof spaceItems.$inferSelect;
+export type InsertSpaceItem = z.infer<typeof insertSpaceItemSchema>;
+export type WaUser = typeof waUsers.$inferSelect;
+export type InsertWaUser = z.infer<typeof insertWaUserSchema>;
+export type Ticket = typeof tickets.$inferSelect;
+export type InsertTicket = z.infer<typeof insertTicketSchema>;
 export type Message = typeof messages.$inferSelect;
 export type InsertMessage = z.infer<typeof insertMessageSchema>;
+
+export type TicketWithRelations = Ticket & {
+  space?: Space;
+  item?: SpaceItem | null;
+  assignedTo?: WaUser | null;
+  createdBy?: WaUser | null;
+};
