@@ -265,6 +265,89 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     }
   });
 
+  // ── Preventive Tasks ──────────────────────────────────────────────────────
+  app.get("/api/preventive", async (req, res) => {
+    res.json(await storage.getPreventiveTasks());
+  });
+  app.post("/api/preventive", async (req, res) => {
+    try {
+      const { insertPreventiveTaskSchema } = await import("@shared/schema");
+      const data = insertPreventiveTaskSchema.parse({
+        ...req.body,
+        nextDue: new Date(req.body.nextDue),
+        lastDone: req.body.lastDone ? new Date(req.body.lastDone) : null,
+      });
+      res.status(201).json(await storage.createPreventiveTask(data));
+    } catch (err: any) { res.status(400).json({ message: err.message }); }
+  });
+  app.patch("/api/preventive/:id", async (req, res) => {
+    try {
+      const updates: any = { ...req.body };
+      if (updates.nextDue) updates.nextDue = new Date(updates.nextDue);
+      if (updates.lastDone) updates.lastDone = new Date(updates.lastDone);
+      res.json(await storage.updatePreventiveTask(Number(req.params.id), updates));
+    } catch (err: any) { res.status(400).json({ message: err.message }); }
+  });
+  app.post("/api/preventive/:id/done", async (req, res) => {
+    try { res.json(await storage.markTaskDone(Number(req.params.id))); }
+    catch (err: any) { res.status(400).json({ message: err.message }); }
+  });
+  app.delete("/api/preventive/:id", async (req, res) => {
+    await storage.deletePreventiveTask(Number(req.params.id));
+    res.status(204).end();
+  });
+
+  // ── Materials ──────────────────────────────────────────────────────────────
+  app.get("/api/materials", async (req, res) => {
+    res.json(await storage.getMaterials());
+  });
+  app.post("/api/materials", async (req, res) => {
+    try {
+      const { insertMaterialSchema } = await import("@shared/schema");
+      const data = insertMaterialSchema.parse(req.body);
+      res.status(201).json(await storage.createMaterial(data));
+    } catch (err: any) { res.status(400).json({ message: err.message }); }
+  });
+  app.patch("/api/materials/:id", async (req, res) => {
+    try { res.json(await storage.updateMaterial(Number(req.params.id), req.body)); }
+    catch (err: any) { res.status(400).json({ message: err.message }); }
+  });
+  app.delete("/api/materials/:id", async (req, res) => {
+    await storage.deleteMaterial(Number(req.params.id));
+    res.status(204).end();
+  });
+
+  // ── Ticket Materials ───────────────────────────────────────────────────────
+  app.get("/api/tickets/:id/materials", async (req, res) => {
+    res.json(await storage.getTicketMaterials(Number(req.params.id)));
+  });
+  app.post("/api/tickets/:id/materials", async (req, res) => {
+    try {
+      const { insertTicketMaterialSchema } = await import("@shared/schema");
+      const data = insertTicketMaterialSchema.parse({ ...req.body, ticketId: Number(req.params.id) });
+      res.status(201).json(await storage.addTicketMaterial(data));
+    } catch (err: any) { res.status(400).json({ message: err.message }); }
+  });
+  app.delete("/api/ticket-materials/:id", async (req, res) => {
+    await storage.deleteTicketMaterial(Number(req.params.id));
+    res.status(204).end();
+  });
+
+  // ── Search ─────────────────────────────────────────────────────────────────
+  app.get("/api/search", async (req, res) => {
+    const q = (req.query.q as string || "").toLowerCase().trim();
+    if (!q || q.length < 2) return res.json({ spaces: [], tickets: [] });
+    const allSpaces = await storage.getSpaces();
+    const allTickets = await storage.getTickets();
+    const spaces = allSpaces.filter(s =>
+      s.name.toLowerCase().includes(q) || s.code.toLowerCase().includes(q) || (s.notes ?? "").toLowerCase().includes(q)
+    ).slice(0, 5);
+    const tickets = allTickets.filter(t =>
+      t.title.toLowerCase().includes(q) || (t.description ?? "").toLowerCase().includes(q)
+    ).slice(0, 5);
+    res.json({ spaces, tickets });
+  });
+
   // ── Energy Readings ───────────────────────────────────────────────────────
   app.get("/api/energy", async (req, res) => {
     const { type, year } = req.query;

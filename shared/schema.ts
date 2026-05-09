@@ -169,3 +169,68 @@ export const energyReadings = pgTable("energy_readings", {
 export const insertEnergyReadingSchema = createInsertSchema(energyReadings).omit({ id: true, createdAt: true });
 export type EnergyReading = typeof energyReadings.$inferSelect;
 export type InsertEnergyReading = z.infer<typeof insertEnergyReadingSchema>;
+
+// ─── Preventive Maintenance Tasks ────────────────────────────────────────────
+export const PREV_FREQ = ["semanal", "quincenal", "mensual", "trimestral", "semestral", "anual"] as const;
+export type PrevFreq = typeof PREV_FREQ[number];
+
+export const PREV_FREQ_DAYS: Record<PrevFreq, number> = {
+  semanal: 7,
+  quincenal: 15,
+  mensual: 30,
+  trimestral: 90,
+  semestral: 180,
+  anual: 365,
+};
+
+export const preventiveTasks = pgTable("preventive_tasks", {
+  id: serial("id").primaryKey(),
+  spaceId: integer("space_id").notNull().references(() => spaces.id, { onDelete: "cascade" }),
+  title: text("title").notNull(),
+  description: text("description"),
+  frequency: text("frequency").notNull().default("mensual"), // PrevFreq
+  lastDone: timestamp("last_done"),
+  nextDue: timestamp("next_due").notNull(),
+  active: boolean("active").default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const insertPreventiveTaskSchema = createInsertSchema(preventiveTasks).omit({ id: true, createdAt: true });
+export type PreventiveTask = typeof preventiveTasks.$inferSelect;
+export type InsertPreventiveTask = z.infer<typeof insertPreventiveTaskSchema>;
+
+export type PreventiveTaskWithSpace = PreventiveTask & { space?: Space };
+
+// ─── Materials Inventory ──────────────────────────────────────────────────────
+export const materials = pgTable("materials", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  unit: text("unit").notNull().default("unidad"), // "unidad", "m", "kg", "litro", etc.
+  stock: real("stock").notNull().default(0),
+  minStock: real("min_stock").notNull().default(0),
+  location: text("location"), // where stored in hotel
+  notes: text("notes"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const insertMaterialSchema = createInsertSchema(materials).omit({ id: true, createdAt: true });
+export type Material = typeof materials.$inferSelect;
+export type InsertMaterial = z.infer<typeof insertMaterialSchema>;
+
+// Materials used in a ticket
+export const ticketMaterials = pgTable("ticket_materials", {
+  id: serial("id").primaryKey(),
+  ticketId: integer("ticket_id").notNull().references(() => tickets.id, { onDelete: "cascade" }),
+  materialId: integer("material_id").notNull().references(() => materials.id, { onDelete: "cascade" }),
+  quantity: real("quantity").notNull(),
+  notes: text("notes"),
+  usedAt: timestamp("used_at").defaultNow(),
+});
+
+export const insertTicketMaterialSchema = createInsertSchema(ticketMaterials).omit({ id: true, usedAt: true });
+export type TicketMaterial = typeof ticketMaterials.$inferSelect;
+export type InsertTicketMaterial = z.infer<typeof insertTicketMaterialSchema>;
+
+export type TicketMaterialWithDetails = TicketMaterial & {
+  material?: Material;
+};

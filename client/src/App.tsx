@@ -12,6 +12,9 @@ import SpaceDetail from "@/pages/space-detail";
 import WaUsers from "@/pages/wa-users";
 import Tickets from "@/pages/tickets";
 import Consumo from "@/pages/consumo";
+import Preventivo from "@/pages/preventivo";
+import Inventario from "@/pages/inventario";
+import Reporte from "@/pages/reporte";
 
 function Router() {
   return (
@@ -22,6 +25,9 @@ function Router() {
       <Route path="/usuarios" component={WaUsers} />
       <Route path="/pendientes" component={Tickets} />
       <Route path="/consumo" component={Consumo} />
+      <Route path="/preventivo" component={Preventivo} />
+      <Route path="/inventario" component={Inventario} />
+      <Route path="/reporte" component={Reporte} />
       <Route component={NotFound} />
     </Switch>
   );

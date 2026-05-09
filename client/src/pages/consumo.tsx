@@ -30,6 +30,53 @@ import type { EnergyReading } from "@shared/schema";
 import { ENERGY_LABELS, ENERGY_UNITS } from "@shared/schema";
 
 const MONTHS_ES = ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"];
+const MONTHS_FULL = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
+
+function ComparisonBlock({ currentYear, currentMonth }: { currentYear: number; currentMonth: number }) {
+  const prevYear = currentYear - 1;
+  const { data: curr = [] } = useQuery<EnergyReading[]>({
+    queryKey: ["/api/energy", currentYear],
+    queryFn: () => fetch(`/api/energy?year=${currentYear}`).then(r => r.json()),
+  });
+  const { data: prev = [] } = useQuery<EnergyReading[]>({
+    queryKey: ["/api/energy", prevYear],
+    queryFn: () => fetch(`/api/energy?year=${prevYear}`).then(r => r.json()),
+  });
+
+  const types = ["gas", "agua", "energia"] as const;
+  return (
+    <div className="grid grid-cols-3 gap-4">
+      {types.map(type => {
+        const cfg = TYPE_CONFIG[type];
+        const Icon = cfg.icon;
+        const cVal = curr.find(r => r.type === type && r.month === currentMonth)?.value ?? null;
+        const pVal = prev.find(r => r.type === type && r.month === currentMonth)?.value ?? null;
+        const diff = cVal !== null && pVal !== null ? ((cVal - pVal) / pVal) * 100 : null;
+        return (
+          <div key={type} className="rounded-xl border border-border/50 p-3 bg-muted/20">
+            <div className="flex items-center gap-1.5 mb-2">
+              <Icon className="h-4 w-4" style={{ color: cfg.color }} />
+              <span className="text-xs font-semibold">{cfg.label}</span>
+            </div>
+            <div className="flex justify-between text-xs text-muted-foreground mb-1">
+              <span>{prevYear}</span>
+              <span className="font-mono">{pVal !== null ? `${pVal.toLocaleString("es-CO")} ${cfg.unit}` : "—"}</span>
+            </div>
+            <div className="flex justify-between text-xs mb-1">
+              <span className="font-medium">{currentYear}</span>
+              <span className="font-mono font-semibold">{cVal !== null ? `${cVal.toLocaleString("es-CO")} ${cfg.unit}` : "—"}</span>
+            </div>
+            {diff !== null && (
+              <div className={`text-xs font-semibold mt-1.5 text-right ${diff > 0 ? "text-red-500" : diff < 0 ? "text-green-600" : "text-muted-foreground"}`}>
+                {diff > 0 ? "▲" : diff < 0 ? "▼" : "="} {Math.abs(diff).toFixed(1)}% {diff > 0 ? "más" : diff < 0 ? "menos" : "igual"}
+              </div>
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
 
 const TYPE_CONFIG = {
   gas: { label: "Gas", icon: Flame, color: "#f97316", unit: "m³" },
@@ -286,6 +333,26 @@ export default function Consumo() {
           );
         })}
       </div>
+
+      {/* Year comparison */}
+      {yearFilter > 2020 && (() => {
+        const prevYear = yearFilter - 1;
+        const prevReadings = readings; // same query, but we need prev year - show comparison block only if we have both years loaded
+        const types = ["gas", "agua", "energia"] as const;
+        const currMonth = new Date().getMonth() + 1;
+        return (
+          <Card className="border border-border/50 shadow-sm mb-6">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-semibold flex items-center gap-2">
+                Comparativo {yearFilter} vs {prevYear} — mes actual ({MONTHS_ES[currMonth - 1]})
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <ComparisonBlock currentYear={yearFilter} currentMonth={currMonth} />
+            </CardContent>
+          </Card>
+        );
+      })()}
 
       {/* Charts */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 mb-6">

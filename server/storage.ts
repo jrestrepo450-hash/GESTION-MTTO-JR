@@ -1,6 +1,7 @@
 import { db } from "./db";
 import {
   spaces, spaceItems, waUsers, tickets, messages, spacePhotos, energyReadings,
+  preventiveTasks, materials, ticketMaterials,
   type Space, type InsertSpace,
   type SpaceItem, type InsertSpaceItem,
   type WaUser, type InsertWaUser,
@@ -8,8 +9,12 @@ import {
   type Message, type InsertMessage,
   type SpacePhoto, type InsertSpacePhoto,
   type EnergyReading, type InsertEnergyReading,
+  type PreventiveTask, type InsertPreventiveTask, type PreventiveTaskWithSpace,
+  type Material, type InsertMaterial,
+  type TicketMaterial, type InsertTicketMaterial, type TicketMaterialWithDetails,
+  PREV_FREQ_DAYS,
 } from "@shared/schema";
-import { eq, desc, asc, and } from "drizzle-orm";
+import { eq, desc, asc, and, lte } from "drizzle-orm";
 
 export interface IStorage {
   // Spaces
@@ -54,6 +59,25 @@ export interface IStorage {
   getEnergyReadings(filters?: { type?: string; year?: number }): Promise<EnergyReading[]>;
   createEnergyReading(reading: InsertEnergyReading): Promise<EnergyReading>;
   deleteEnergyReading(id: number): Promise<void>;
+
+  // Preventive Tasks
+  getPreventiveTasks(): Promise<PreventiveTaskWithSpace[]>;
+  getOverdueTasks(): Promise<PreventiveTaskWithSpace[]>;
+  createPreventiveTask(task: InsertPreventiveTask): Promise<PreventiveTask>;
+  updatePreventiveTask(id: number, updates: Partial<InsertPreventiveTask>): Promise<PreventiveTask>;
+  deletePreventiveTask(id: number): Promise<void>;
+  markTaskDone(id: number): Promise<PreventiveTask>;
+
+  // Materials
+  getMaterials(): Promise<Material[]>;
+  createMaterial(material: InsertMaterial): Promise<Material>;
+  updateMaterial(id: number, updates: Partial<InsertMaterial>): Promise<Material>;
+  deleteMaterial(id: number): Promise<void>;
+
+  // Ticket Materials
+  getTicketMaterials(ticketId: number): Promise<TicketMaterialWithDetails[]>;
+  addTicketMaterial(tm: InsertTicketMaterial): Promise<TicketMaterial>;
+  deleteTicketMaterial(id: number): Promise<void>;
 
   // Stats
   getTicketStats(): Promise<{ title: string; count: number; spaceId: number; spaceName: string }[]>;
@@ -180,6 +204,91 @@ export class DatabaseStorage implements IStorage {
   }
   async deleteSpacePhoto(id: number): Promise<void> {
     await db.delete(spacePhotos).where(eq(spacePhotos.id, id));
+  }
+
+  // ── Preventive Tasks ─────────────────────────────────────
+  async getPreventiveTasks(): Promise<PreventiveTaskWithSpace[]> {
+    const rows = await db.select().from(preventiveTasks).orderBy(asc(preventiveTasks.nextDue));
+    const allSpaces = await db.select().from(spaces);
+    const spaceMap = new Map(allSpaces.map(s => [s.id, s]));
+    return rows.map(t => ({ ...t, space: spaceMap.get(t.spaceId) }));
+  }
+  async getOverdueTasks(): Promise<PreventiveTaskWithSpace[]> {
+    const now = new Date();
+    const rows = await db.select().from(preventiveTasks)
+      .where(and(eq(preventiveTasks.active, true), lte(preventiveTasks.nextDue, now)))
+      .orderBy(asc(preventiveTasks.nextDue));
+    const allSpaces = await db.select().from(spaces);
+    const spaceMap = new Map(allSpaces.map(s => [s.id, s]));
+    return rows.map(t => ({ ...t, space: spaceMap.get(t.spaceId) }));
+  }
+  async createPreventiveTask(task: InsertPreventiveTask): Promise<PreventiveTask> {
+    const [t] = await db.insert(preventiveTasks).values(task).returning();
+    return t;
+  }
+  async updatePreventiveTask(id: number, updates: Partial<InsertPreventiveTask>): Promise<PreventiveTask> {
+    const [t] = await db.update(preventiveTasks).set(updates).where(eq(preventiveTasks.id, id)).returning();
+    return t;
+  }
+  async deletePreventiveTask(id: number): Promise<void> {
+    await db.delete(preventiveTasks).where(eq(preventiveTasks.id, id));
+  }
+  async markTaskDone(id: number): Promise<PreventiveTask> {
+    const [existing] = await db.select().from(preventiveTasks).where(eq(preventiveTasks.id, id));
+    if (!existing) throw new Error("Task not found");
+    const freqDays = PREV_FREQ_DAYS[existing.frequency as keyof typeof PREV_FREQ_DAYS] ?? 30;
+    const now = new Date();
+    const nextDue = new Date(now.getTime() + freqDays * 24 * 60 * 60 * 1000);
+    const [t] = await db.update(preventiveTasks)
+      .set({ lastDone: now, nextDue })
+      .where(eq(preventiveTasks.id, id))
+      .returning();
+    return t;
+  }
+
+  // ── Materials ─────────────────────────────────────────────
+  async getMaterials(): Promise<Material[]> {
+    return db.select().from(materials).orderBy(asc(materials.name));
+  }
+  async createMaterial(material: InsertMaterial): Promise<Material> {
+    const [m] = await db.insert(materials).values(material).returning();
+    return m;
+  }
+  async updateMaterial(id: number, updates: Partial<InsertMaterial>): Promise<Material> {
+    const [m] = await db.update(materials).set(updates).where(eq(materials.id, id)).returning();
+    return m;
+  }
+  async deleteMaterial(id: number): Promise<void> {
+    await db.delete(materials).where(eq(materials.id, id));
+  }
+
+  // ── Ticket Materials ──────────────────────────────────────
+  async getTicketMaterials(ticketId: number): Promise<TicketMaterialWithDetails[]> {
+    const rows = await db.select().from(ticketMaterials).where(eq(ticketMaterials.ticketId, ticketId));
+    const result: TicketMaterialWithDetails[] = [];
+    for (const r of rows) {
+      const [mat] = await db.select().from(materials).where(eq(materials.id, r.materialId));
+      result.push({ ...r, material: mat });
+    }
+    return result;
+  }
+  async addTicketMaterial(tm: InsertTicketMaterial): Promise<TicketMaterial> {
+    const [r] = await db.insert(ticketMaterials).values(tm).returning();
+    // Deduct from stock
+    const [mat] = await db.select().from(materials).where(eq(materials.id, tm.materialId));
+    if (mat) {
+      await db.update(materials).set({ stock: Math.max(0, (mat.stock ?? 0) - tm.quantity) }).where(eq(materials.id, tm.materialId));
+    }
+    return r;
+  }
+  async deleteTicketMaterial(id: number): Promise<void> {
+    // Restore stock
+    const [tm] = await db.select().from(ticketMaterials).where(eq(ticketMaterials.id, id));
+    if (tm) {
+      const [mat] = await db.select().from(materials).where(eq(materials.id, tm.materialId));
+      if (mat) await db.update(materials).set({ stock: (mat.stock ?? 0) + tm.quantity }).where(eq(materials.id, tm.materialId));
+    }
+    await db.delete(ticketMaterials).where(eq(ticketMaterials.id, id));
   }
 
   // ── Energy Readings ──────────────────────────────────────

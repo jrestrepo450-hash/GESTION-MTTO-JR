@@ -141,3 +141,26 @@
     @apply bg-background/80 backdrop-blur-md border border-border/50 shadow-lg;
   }
 }
+
+/* ── Print styles for Reporte Mensual ───────────────────────── */
+@media print {
+  body {
+    background: white !important;
+    color: black !important;
+    font-size: 12px;
+  }
+  [data-sidebar], nav, header, aside {
+    display: none !important;
+  }
+  main, #root > div {
+    margin: 0 !important;
+    padding: 0 !important;
+    width: 100% !important;
+  }
+  .print\\:hidden { display: none !important; }
+  .print\\:block { display: block !important; }
+  .hidden.print\\:block { display: block !important; }
+  .shadow-sm, .shadow { box-shadow: none !important; }
+  .border { border-color: #ddd !important; }
+  @page { margin: 1.5cm; }
+}
