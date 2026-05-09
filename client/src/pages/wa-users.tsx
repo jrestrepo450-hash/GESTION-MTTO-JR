@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useWaUsers, useCreateWaUser, useUpdateWaUser, useDeleteWaUser } from "@/hooks/use-wa-users";
-import { Users, Plus, Trash2, Pencil, Phone, ShieldCheck } from "lucide-react";
+import { Users, Plus, Trash2, Pencil, Phone, ShieldCheck, Hash, AlertTriangle, Camera } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
@@ -175,6 +175,74 @@ export default function WaUsers() {
         <p className="text-xs text-muted-foreground">
           🔑 El código del espacio va al inicio del mensaje seguido de dos puntos: <strong>"101: descripción"</strong>, <strong>"LOBBY: descripción"</strong>, etc.
         </p>
+      </div>
+
+      {/* ── Referencia rápida de palabras clave ── */}
+      <div className="bg-card border border-border/50 rounded-2xl p-5 mb-6 shadow-sm space-y-4">
+        <h3 className="font-semibold text-sm flex items-center gap-2">
+          <Hash className="h-4 w-4 text-primary" /> Referencia rápida de palabras clave
+        </h3>
+
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          {/* Código de espacio */}
+          <div className="rounded-xl border border-border/60 p-3 space-y-2">
+            <p className="text-xs font-semibold flex items-center gap-1.5">
+              <Hash className="h-3.5 w-3.5 text-primary" /> Código del espacio
+            </p>
+            <p className="text-xs text-muted-foreground">
+              Va <strong>al inicio</strong> del mensaje, seguido de dos puntos (<code>:</code>).
+            </p>
+            <div className="space-y-1">
+              {[
+                { code: "101", desc: "Habitación 101" },
+                { code: "LOBBY", desc: "Lobby Principal" },
+                { code: "SUB-1", desc: "Subestación 1" },
+                { code: "COCINA", desc: "Cocina Central" },
+                { code: "RCI", desc: "Red Contra Incendio" },
+              ].map(({ code, desc }) => (
+                <div key={code} className="flex items-center gap-2 text-xs">
+                  <code className="bg-primary/10 text-primary font-mono px-1.5 py-0.5 rounded text-[10px]">{code}:</code>
+                  <span className="text-muted-foreground">{desc}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Palabras que crean ticket */}
+          <div className="rounded-xl border border-amber-500/30 bg-amber-50/40 dark:bg-amber-950/20 p-3 space-y-2">
+            <p className="text-xs font-semibold flex items-center gap-1.5 text-amber-700 dark:text-amber-400">
+              <AlertTriangle className="h-3.5 w-3.5" /> Crean un pendiente automático
+            </p>
+            <p className="text-xs text-muted-foreground">
+              Si el mensaje contiene alguna de estas palabras, se genera un ticket de mantenimiento.
+            </p>
+            <div className="flex flex-wrap gap-1.5 mt-1">
+              {["pendiente", "dañado", "avería", "falla"].map(kw => (
+                <span key={kw} className="bg-amber-100 dark:bg-amber-900/40 text-amber-800 dark:text-amber-300 text-[11px] font-mono px-2 py-0.5 rounded-full border border-amber-300/50">
+                  {kw}
+                </span>
+              ))}
+            </div>
+            <p className="text-[11px] text-muted-foreground pt-1">
+              Ej: <em>"101: <strong>dañado</strong> el aire acondicionado"</em>
+            </p>
+          </div>
+
+          {/* Fotos */}
+          <div className="rounded-xl border border-blue-500/30 bg-blue-50/40 dark:bg-blue-950/20 p-3 space-y-2">
+            <p className="text-xs font-semibold flex items-center gap-1.5 text-blue-700 dark:text-blue-400">
+              <Camera className="h-3.5 w-3.5" /> Fotos desde WhatsApp
+            </p>
+            <p className="text-xs text-muted-foreground">
+              Si el mensaje incluye una imagen, se guarda automáticamente en la galería del espacio.
+            </p>
+            <div className="space-y-1 text-[11px] text-muted-foreground">
+              <p>• El <strong>caption</strong> de la foto debe incluir el código del espacio.</p>
+              <p>• Ej: caption <em>"101: revisión AC"</em></p>
+              <p>• La foto aparece en la pestaña <strong>Fotos</strong> del espacio.</p>
+            </div>
+          </div>
+        </div>
       </div>
 
       {isLoading ? (
