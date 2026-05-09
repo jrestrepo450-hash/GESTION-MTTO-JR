@@ -1,11 +1,12 @@
 import { db } from "./db";
 import {
-  spaces, spaceItems, waUsers, tickets, messages,
+  spaces, spaceItems, waUsers, tickets, messages, spacePhotos,
   type Space, type InsertSpace,
   type SpaceItem, type InsertSpaceItem,
   type WaUser, type InsertWaUser,
   type Ticket, type InsertTicket, type TicketWithRelations,
   type Message, type InsertMessage,
+  type SpacePhoto, type InsertSpacePhoto,
 } from "@shared/schema";
 import { eq, desc, asc } from "drizzle-orm";
 
@@ -41,6 +42,15 @@ export interface IStorage {
   // Messages
   getMessages(spaceCode: string): Promise<Message[]>;
   createMessage(message: InsertMessage): Promise<Message>;
+
+  // Photos
+  getSpacePhotos(spaceId: number): Promise<SpacePhoto[]>;
+  getAllPhotos(): Promise<SpacePhoto[]>;
+  createSpacePhoto(photo: InsertSpacePhoto): Promise<SpacePhoto>;
+  deleteSpacePhoto(id: number): Promise<void>;
+
+  // Stats
+  getTicketStats(): Promise<{ title: string; count: number; spaceId: number; spaceName: string }[]>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -149,6 +159,46 @@ export class DatabaseStorage implements IStorage {
   async createMessage(message: InsertMessage): Promise<Message> {
     const [m] = await db.insert(messages).values(message).returning();
     return m;
+  }
+
+  // ── Photos ───────────────────────────────────────────────
+  async getSpacePhotos(spaceId: number): Promise<SpacePhoto[]> {
+    return db.select().from(spacePhotos).where(eq(spacePhotos.spaceId, spaceId)).orderBy(desc(spacePhotos.takenAt));
+  }
+  async getAllPhotos(): Promise<SpacePhoto[]> {
+    return db.select().from(spacePhotos).orderBy(desc(spacePhotos.takenAt));
+  }
+  async createSpacePhoto(photo: InsertSpacePhoto): Promise<SpacePhoto> {
+    const [p] = await db.insert(spacePhotos).values(photo).returning();
+    return p;
+  }
+  async deleteSpacePhoto(id: number): Promise<void> {
+    await db.delete(spacePhotos).where(eq(spacePhotos.id, id));
+  }
+
+  // ── Stats ────────────────────────────────────────────────
+  async getTicketStats(): Promise<{ title: string; count: number; spaceId: number; spaceName: string }[]> {
+    const allTickets = await db.select().from(tickets).orderBy(desc(tickets.createdAt));
+    const allSpaces = await db.select().from(spaces);
+    const spaceMap = new Map(allSpaces.map(s => [s.id, s.name]));
+
+    // Group by title (normalized) + spaceId
+    const map = new Map<string, { title: string; count: number; spaceId: number; spaceName: string }>();
+    for (const t of allTickets) {
+      // Normalize: lowercase, trim
+      const key = `${t.spaceId}::${t.title.toLowerCase().trim()}`;
+      if (map.has(key)) {
+        map.get(key)!.count++;
+      } else {
+        map.set(key, {
+          title: t.title,
+          count: 1,
+          spaceId: t.spaceId,
+          spaceName: spaceMap.get(t.spaceId) ?? "Desconocido",
+        });
+      }
+    }
+    return Array.from(map.values()).sort((a, b) => b.count - a.count);
   }
 }
 

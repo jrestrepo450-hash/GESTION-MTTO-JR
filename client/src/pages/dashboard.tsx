@@ -5,8 +5,9 @@ import { useWaUsers } from "@/hooks/use-wa-users";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Wrench, MapPin, Users, ClipboardList, AlertTriangle, CheckCircle2 } from "lucide-react";
+import { Wrench, MapPin, ClipboardList, AlertTriangle, CheckCircle2, BarChart2 } from "lucide-react";
 import { SPACE_TYPE_LABELS, type SpaceType } from "@shared/schema";
+import { GlobalTicketCharts } from "@/components/ticket-charts";
 
 export default function Dashboard() {
   const { data: spaces } = useSpaces();
@@ -62,6 +63,14 @@ export default function Dashboard() {
             <CheckCircle2 className="h-8 w-8 text-white/40" />
           </CardContent>
         </Card>
+      </div>
+
+      {/* Charts */}
+      <div>
+        <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
+          <BarChart2 className="h-5 w-5 text-primary" /> Análisis de Novedades
+        </h2>
+        <GlobalTicketCharts />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

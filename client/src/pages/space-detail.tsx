@@ -4,8 +4,10 @@ import { useSpace, useSpaceItems, useCreateSpaceItem, useUpdateSpaceItem, useDel
 import { useMessages, useCreateMessage } from "@/hooks/use-messages";
 import { useTickets, useCreateTicket, useUpdateTicket } from "@/hooks/use-tickets";
 import { useWaUsers } from "@/hooks/use-wa-users";
+import { PhotoGallery } from "@/components/photo-gallery";
+import { SpaceTicketChart } from "@/components/ticket-charts";
 import {
-  ArrowLeft, Plus, Send, MessageCircle, ClipboardList, Tv, Bed, Sofa, Layers,
+  ArrowLeft, Plus, Send, MessageCircle, ClipboardList, Camera, Layers,
   CheckCircle2, AlertCircle, XCircle, Pencil, Trash2, X
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -136,12 +138,15 @@ export default function SpaceDetail() {
       </div>
 
       <Tabs defaultValue="items" className="flex-1">
-        <TabsList className="mb-4">
+        <TabsList className="mb-4 flex-wrap h-auto gap-1">
           <TabsTrigger value="items" data-testid="tab-items">
             <Layers className="mr-1.5 h-4 w-4" /> Ítems ({items?.length ?? 0})
           </TabsTrigger>
           <TabsTrigger value="tickets" data-testid="tab-tickets">
             <ClipboardList className="mr-1.5 h-4 w-4" /> Pendientes ({tickets?.length ?? 0})
+          </TabsTrigger>
+          <TabsTrigger value="photos" data-testid="tab-photos">
+            <Camera className="mr-1.5 h-4 w-4" /> Fotos
           </TabsTrigger>
           <TabsTrigger value="messages" data-testid="tab-messages">
             <MessageCircle className="mr-1.5 h-4 w-4" /> Bitácora WhatsApp
@@ -390,6 +395,12 @@ export default function SpaceDetail() {
               </p>
             </div>
           </div>
+        </TabsContent>
+
+        {/* ── Photos Tab ── */}
+        <TabsContent value="photos">
+          <SpaceTicketChart spaceId={spaceId} />
+          <PhotoGallery spaceId={spaceId} spaceCode={space.code} />
         </TabsContent>
       </Tabs>
     </div>

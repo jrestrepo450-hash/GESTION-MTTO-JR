@@ -3,6 +3,27 @@ import type { Server } from "http";
 import { storage } from "./storage";
 import { api } from "@shared/routes";
 import { z } from "zod";
+import multer from "multer";
+import path from "path";
+import fs from "fs";
+
+const uploadsDir = path.join(process.cwd(), "uploads");
+if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir, { recursive: true });
+
+const upload = multer({
+  storage: multer.diskStorage({
+    destination: (_req, _file, cb) => cb(null, uploadsDir),
+    filename: (_req, file, cb) => {
+      const ext = path.extname(file.originalname);
+      cb(null, `photo_${Date.now()}${ext}`);
+    },
+  }),
+  limits: { fileSize: 10 * 1024 * 1024 },
+  fileFilter: (_req, file, cb) => {
+    if (file.mimetype.startsWith("image/")) cb(null, true);
+    else cb(new Error("Solo se permiten imágenes"));
+  },
+});
 
 export async function registerRoutes(httpServer: Server, app: Express): Promise<Server> {
 
@@ -154,6 +175,53 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     } catch (err) {
       res.status(500).json({ message: "Error interno" });
     }
+  });
+
+  // ── Photos ────────────────────────────────────────────────────────────────
+  app.get("/api/spaces/:spaceId/photos", async (req, res) => {
+    res.json(await storage.getSpacePhotos(Number(req.params.spaceId)));
+  });
+
+  app.post("/api/spaces/:spaceId/photos", upload.single("photo"), async (req, res) => {
+    try {
+      if (!req.file) return res.status(400).json({ message: "No se adjuntó imagen" });
+      const space = await storage.getSpace(Number(req.params.spaceId));
+      if (!space) return res.status(404).json({ message: "Espacio no encontrado" });
+
+      const takenAt = req.body.takenAt ? new Date(req.body.takenAt) : new Date();
+      const photo = await storage.createSpacePhoto({
+        spaceId: space.id,
+        spaceCode: space.code,
+        filename: req.file.filename,
+        caption: req.body.caption || null,
+        takenAt,
+        sender: req.body.sender || null,
+      });
+      res.status(201).json(photo);
+    } catch (err) {
+      console.error("Photo upload error:", err);
+      res.status(500).json({ message: "Error al subir foto" });
+    }
+  });
+
+  app.delete("/api/photos/:id", async (req, res) => {
+    try {
+      const allPhotos = await storage.getAllPhotos();
+      const photo = allPhotos.find(p => p.id === Number(req.params.id));
+      if (photo) {
+        const filePath = path.join(uploadsDir, photo.filename);
+        if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
+      }
+      await storage.deleteSpacePhoto(Number(req.params.id));
+      res.status(204).end();
+    } catch (err) {
+      res.status(500).json({ message: "Error al eliminar foto" });
+    }
+  });
+
+  // ── Stats ─────────────────────────────────────────────────────────────────
+  app.get("/api/stats/tickets", async (req, res) => {
+    res.json(await storage.getTicketStats());
   });
 
   // ── WhatsApp Webhook ──────────────────────────────────────────────────────

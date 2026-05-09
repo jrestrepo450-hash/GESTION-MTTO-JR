@@ -113,3 +113,19 @@ export type TicketWithRelations = Ticket & {
   assignedTo?: WaUser | null;
   createdBy?: WaUser | null;
 };
+
+// ─── Space Photos ─────────────────────────────────────────────────────────────
+export const spacePhotos = pgTable("space_photos", {
+  id: serial("id").primaryKey(),
+  spaceId: integer("space_id").notNull().references(() => spaces.id, { onDelete: "cascade" }),
+  spaceCode: text("space_code").notNull(),
+  filename: text("filename").notNull(),
+  caption: text("caption"),
+  takenAt: timestamp("taken_at").notNull(), // fecha de realización
+  uploadedAt: timestamp("uploaded_at").defaultNow(),
+  sender: text("sender"), // who uploaded (WhatsApp user name/phone)
+});
+
+export const insertSpacePhotoSchema = createInsertSchema(spacePhotos).omit({ id: true, uploadedAt: true });
+export type SpacePhoto = typeof spacePhotos.$inferSelect;
+export type InsertSpacePhoto = z.infer<typeof insertSpacePhotoSchema>;
