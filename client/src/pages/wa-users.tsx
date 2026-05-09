@@ -126,17 +126,55 @@ export default function WaUsers() {
         />
       </div>
 
-      <div className="bg-card border border-border/50 rounded-2xl p-5 mb-6 shadow-sm">
-        <h3 className="font-semibold text-sm mb-2 flex items-center gap-2"><ShieldCheck className="h-4 w-4 text-primary" />¿Cómo funciona?</h3>
+      <div className="bg-card border border-border/50 rounded-2xl p-5 mb-6 shadow-sm space-y-3">
+        <h3 className="font-semibold text-sm flex items-center gap-2"><ShieldCheck className="h-4 w-4 text-primary" />¿Cómo funciona?</h3>
         <p className="text-sm text-muted-foreground">
-          Cuando un usuario registrado envíe un mensaje de WhatsApp al webhook del hotel, el sistema lo identificará por su número y vinculará el mensaje al espacio correcto. Si el mensaje incluye palabras como "pendiente", "dañado" o "falla", se creará un ticket automáticamente.
+          Cuando un usuario registrado envíe un mensaje o foto por WhatsApp, el sistema lo identifica por número, vincula el contenido al espacio indicado en el mensaje, y guarda automáticamente la imagen en la galería del espacio.
         </p>
-        <div className="mt-3 p-3 bg-secondary/40 rounded-xl">
-          <p className="text-xs font-mono text-foreground">Webhook: <strong>POST /api/webhook/whatsapp</strong></p>
-          <p className="text-xs text-muted-foreground mt-1">
-            Payload: <span className="font-mono">{"{ from: \"+57300...\", body: \"101: TV dañada pendiente\" }"}</span>
-          </p>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          {/* Texto */}
+          <div className="p-3 bg-secondary/40 rounded-xl space-y-1">
+            <p className="text-xs font-semibold text-foreground">💬 Mensaje de texto</p>
+            <p className="text-[11px] font-mono text-muted-foreground break-all">
+              POST /api/webhook/whatsapp
+            </p>
+            <p className="text-[11px] font-mono bg-background/60 rounded p-2 break-all">
+              {`{ "from": "+57300...",\n  "body": "101: TV dañada pendiente" }`}
+            </p>
+          </div>
+
+          {/* Foto con URL */}
+          <div className="p-3 bg-secondary/40 rounded-xl space-y-1">
+            <p className="text-xs font-semibold text-foreground">📸 Foto con URL</p>
+            <p className="text-[11px] font-mono text-muted-foreground break-all">
+              POST /api/webhook/whatsapp
+            </p>
+            <p className="text-[11px] font-mono bg-background/60 rounded p-2 break-all">
+              {`{ "from": "+57300...",\n  "body": "LOBBY: mancha pared",\n  "mediaUrl": "https://cdn.wa.../foto.jpg",\n  "mediaType": "image/jpeg" }`}
+            </p>
+          </div>
+
+          {/* Foto base64 */}
+          <div className="p-3 bg-secondary/40 rounded-xl space-y-1">
+            <p className="text-xs font-semibold text-foreground">🖼️ Foto en Base64</p>
+            <p className="text-[11px] font-mono bg-background/60 rounded p-2 break-all">
+              {`{ "from": "+57300...",\n  "body": "101: revisión AC",\n  "mediaBase64": "data:image/jpeg;base64,...",\n  "mediaType": "image/jpeg" }`}
+            </p>
+          </div>
+
+          {/* WhatsApp Cloud API */}
+          <div className="p-3 bg-secondary/40 rounded-xl space-y-1">
+            <p className="text-xs font-semibold text-foreground">☁️ WhatsApp Cloud API</p>
+            <p className="text-[11px] font-mono bg-background/60 rounded p-2 break-all">
+              {`{ "entry": [{ "changes": [{ "value": {\n  "messages": [{ "type": "image",\n    "from": "+57300...",\n    "image": { "url": "https://...",\n    "caption": "SUB-1: revisión", "mime_type": "image/jpeg" }\n  }]\n}}]}]}`}
+            </p>
+          </div>
         </div>
+
+        <p className="text-xs text-muted-foreground">
+          🔑 El código del espacio va al inicio del mensaje seguido de dos puntos: <strong>"101: descripción"</strong>, <strong>"LOBBY: descripción"</strong>, etc.
+        </p>
       </div>
 
       {isLoading ? (

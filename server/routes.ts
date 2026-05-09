@@ -6,6 +6,52 @@ import { z } from "zod";
 import multer from "multer";
 import path from "path";
 import fs from "fs";
+import https from "https";
+import http from "http";
+
+// ── Helper: download image from URL (follows redirects) ───────────────────────
+async function downloadImageFromUrl(imageUrl: string, destPath: string, maxRedirects = 8): Promise<void> {
+  let currentUrl = imageUrl;
+  for (let i = 0; i < maxRedirects; i++) {
+    const result = await new Promise<{ redirect?: string; done?: true }>((resolve, reject) => {
+      const proto = currentUrl.startsWith("https://") ? https : http;
+      const req = proto.get(currentUrl, { headers: { "User-Agent": "HotelMtto/1.0" } }, (response) => {
+        const status = response.statusCode ?? 0;
+        if ([301, 302, 307, 308].includes(status) && response.headers.location) {
+          response.resume();
+          return resolve({ redirect: response.headers.location });
+        }
+        if (status !== 200) {
+          response.resume();
+          return reject(new Error(`HTTP ${status} al descargar imagen desde ${currentUrl}`));
+        }
+        const file = fs.createWriteStream(destPath);
+        response.pipe(file);
+        file.on("finish", () => resolve({ done: true }));
+        file.on("error", (err) => { if (fs.existsSync(destPath)) fs.unlinkSync(destPath); reject(err); });
+      });
+      req.on("error", reject);
+    });
+    if (result.done) return;
+    if (result.redirect) { currentUrl = result.redirect; continue; }
+  }
+  throw new Error("Demasiadas redirecciones al descargar imagen");
+}
+
+// ── Helper: save base64 image ─────────────────────────────────────────────────
+function saveBase64Image(base64: string, mimeType: string, destPath: string): void {
+  const data = base64.replace(/^data:image\/\w+;base64,/, "");
+  fs.writeFileSync(destPath, Buffer.from(data, "base64"));
+}
+
+// ── Helper: extract ext from mime type ───────────────────────────────────────
+function extFromMime(mime: string): string {
+  const map: Record<string, string> = {
+    "image/jpeg": ".jpg", "image/jpg": ".jpg", "image/png": ".png",
+    "image/webp": ".webp", "image/gif": ".gif", "image/heic": ".heic",
+  };
+  return map[mime?.toLowerCase()] || ".jpg";
+}
 
 const uploadsDir = path.join(process.cwd(), "uploads");
 if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir, { recursive: true });
@@ -225,49 +271,130 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
   });
 
   // ── WhatsApp Webhook ──────────────────────────────────────────────────────
+  // Supports formats:
+  //  Simple:  { from, body, mediaUrl?, mediaBase64?, mediaType?, caption? }
+  //  WA API:  { entry:[{ changes:[{ value:{ messages:[{ type, from, timestamp, image:{url,caption,mime_type}, text:{body} }] }}] }] }
   app.post("/api/webhook/whatsapp", async (req, res) => {
     try {
       const body = req.body;
-      const content: string = body.body || body.text || "";
-      const sender: string = body.from || body.sender || "WhatsApp";
 
-      // Match space code at start: "101: message", "LOBBY: message", "Habitación 101: message"
+      // ── Normalize payload ─────────────────────────────────────────────────
+      let sender = "";
+      let content = "";
+      let mediaUrl: string | null = null;
+      let mediaBase64: string | null = null;
+      let mediaType = "image/jpeg";
+      let caption = "";
+      let timestamp: Date = new Date();
+
+      // WhatsApp Business API Cloud format
+      if (body.entry && Array.isArray(body.entry)) {
+        const msg = body.entry?.[0]?.changes?.[0]?.value?.messages?.[0];
+        if (!msg) { return res.status(200).json({ success: true }); }
+        sender = msg.from || "";
+        timestamp = msg.timestamp ? new Date(Number(msg.timestamp) * 1000) : new Date();
+        if (msg.type === "image" && msg.image) {
+          mediaUrl = msg.image.url || null;
+          mediaType = msg.image.mime_type || "image/jpeg";
+          caption = msg.image.caption || "";
+          content = caption || "[Foto recibida]";
+        } else if (msg.type === "text") {
+          content = msg.text?.body || "";
+        }
+      } else {
+        // Simple / direct format
+        sender = body.from || body.sender || "WhatsApp";
+        content = body.body || body.text || body.caption || "";
+        mediaUrl = body.mediaUrl || body.imageUrl || null;
+        mediaBase64 = body.mediaBase64 || null;
+        mediaType = body.mediaType || body.mimeType || "image/jpeg";
+        caption = body.caption || content;
+      }
+
+      // ── Detect space code ─────────────────────────────────────────────────
+      const textToSearch = content || caption;
       const codeMatch =
-        content.match(/^(\w[\w-]*)\s*:/i) ||
-        content.match(/Habitaci[oó]n\s+(\w+)/i) ||
-        content.match(/Espacio\s+(\w+)/i);
-      const spaceCode = codeMatch ? codeMatch[1].toUpperCase() : null;
+        textToSearch.match(/^(\w[\w\s-]*?)\s*:/i) ||
+        textToSearch.match(/Habitaci[oó]n\s+(\w+)/i) ||
+        textToSearch.match(/Espacio\s+(\w+)/i);
+      const rawCode = codeMatch ? codeMatch[1].trim() : null;
+      const spaceCode = rawCode ? rawCode.toUpperCase() : null;
 
-      if (spaceCode) {
-        const space = await storage.getSpaceByCode(spaceCode);
-        if (space) {
-          // Find or create the WA user
-          const waUser = await storage.getWaUserByPhone(sender);
+      if (!spaceCode) {
+        return res.status(200).json({ success: true, note: "No se detectó código de espacio" });
+      }
 
-          await storage.createMessage({
-            spaceCode,
-            content,
-            sender: waUser ? waUser.name : sender,
-            isMaintenanceUpdate: false,
-          });
+      const space = await storage.getSpaceByCode(spaceCode);
+      if (!space) {
+        return res.status(200).json({ success: true, note: `Espacio ${spaceCode} no encontrado` });
+      }
 
-          // Auto-create ticket if message contains keywords
-          const low = content.toLowerCase();
-          if (low.includes("pendiente") || low.includes("dañado") || low.includes("avería") || low.includes("falla")) {
-            await storage.createTicket({
-              spaceId: space.id,
-              title: content.length > 80 ? content.slice(0, 80) + "…" : content,
-              description: content,
-              status: "pendiente",
-              priority: "media",
-              assignedToId: waUser?.id ?? null,
-              createdById: waUser?.id ?? null,
-            });
+      const waUser = await storage.getWaUserByPhone(sender);
+      const senderName = waUser ? waUser.name : sender;
+
+      // ── Save image if present ─────────────────────────────────────────────
+      let savedFilename: string | null = null;
+      const hasMedia = !!(mediaUrl || mediaBase64);
+
+      if (hasMedia) {
+        const ext = extFromMime(mediaType);
+        const filename = `wa_${Date.now()}${ext}`;
+        const destPath = path.join(uploadsDir, filename);
+
+        try {
+          if (mediaUrl) {
+            await downloadImageFromUrl(mediaUrl, destPath);
+          } else if (mediaBase64) {
+            saveBase64Image(mediaBase64, mediaType, destPath);
           }
+          savedFilename = filename;
+
+          // Create space photo record
+          await storage.createSpacePhoto({
+            spaceId: space.id,
+            spaceCode,
+            filename,
+            caption: caption || content || null,
+            takenAt: timestamp,
+            sender: senderName,
+          });
+        } catch (imgErr) {
+          console.error("Error al guardar imagen del webhook:", imgErr);
         }
       }
 
-      res.status(200).json({ success: true });
+      // ── Save message in bitácora ──────────────────────────────────────────
+      const msgContent = hasMedia
+        ? `📸 ${caption || "Foto"} ${savedFilename ? "(imagen guardada)" : "(error al guardar imagen)"}`
+        : textToSearch;
+
+      await storage.createMessage({
+        spaceCode,
+        content: msgContent,
+        sender: senderName,
+        isMaintenanceUpdate: hasMedia,
+      });
+
+      // ── Auto-create ticket on keywords ────────────────────────────────────
+      const low = textToSearch.toLowerCase();
+      if (low.includes("pendiente") || low.includes("dañado") || low.includes("avería") || low.includes("falla")) {
+        await storage.createTicket({
+          spaceId: space.id,
+          title: textToSearch.length > 80 ? textToSearch.slice(0, 80) + "…" : textToSearch,
+          description: textToSearch,
+          status: "pendiente",
+          priority: "media",
+          assignedToId: waUser?.id ?? null,
+          createdById: waUser?.id ?? null,
+        });
+      }
+
+      res.status(200).json({
+        success: true,
+        space: spaceCode,
+        photoSaved: !!savedFilename,
+        filename: savedFilename,
+      });
     } catch (err) {
       console.error("Webhook error:", err);
       res.status(500).json({ success: false });
