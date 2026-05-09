@@ -1,4 +1,4 @@
-import { pgTable, text, serial, timestamp, boolean, integer } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, timestamp, boolean, integer, real } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -129,3 +129,43 @@ export const spacePhotos = pgTable("space_photos", {
 export const insertSpacePhotoSchema = createInsertSchema(spacePhotos).omit({ id: true, uploadedAt: true });
 export type SpacePhoto = typeof spacePhotos.$inferSelect;
 export type InsertSpacePhoto = z.infer<typeof insertSpacePhotoSchema>;
+
+// ─── Energy Readings ──────────────────────────────────────────────────────────
+export const ENERGY_TYPES = ["gas", "agua", "energia"] as const;
+export type EnergyType = typeof ENERGY_TYPES[number];
+
+export const ENERGY_LABELS: Record<EnergyType, string> = {
+  gas: "Gas",
+  agua: "Agua",
+  energia: "Energía",
+};
+
+export const ENERGY_UNITS: Record<EnergyType, string> = {
+  gas: "m³",
+  agua: "m³",
+  energia: "kWh",
+};
+
+export const ENERGY_CODES: Record<string, EnergyType> = {
+  GAS: "gas",
+  AGUA: "agua",
+  ENERGIA: "energia",
+  ENERGÍA: "energia",
+};
+
+export const energyReadings = pgTable("energy_readings", {
+  id: serial("id").primaryKey(),
+  type: text("type").notNull(), // "gas" | "agua" | "energia"
+  month: integer("month").notNull(), // 1-12
+  year: integer("year").notNull(),
+  value: real("value").notNull(),
+  unit: text("unit").notNull(),
+  notes: text("notes"),
+  sender: text("sender"),
+  source: text("source").notNull().default("manual"), // "manual" | "whatsapp"
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const insertEnergyReadingSchema = createInsertSchema(energyReadings).omit({ id: true, createdAt: true });
+export type EnergyReading = typeof energyReadings.$inferSelect;
+export type InsertEnergyReading = z.infer<typeof insertEnergyReadingSchema>;

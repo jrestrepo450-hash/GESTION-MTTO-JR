@@ -242,6 +242,29 @@ export default function WaUsers() {
               <p>• La foto aparece en la pestaña <strong>Fotos</strong> del espacio.</p>
             </div>
           </div>
+
+          {/* Consumo energético */}
+          <div className="rounded-xl border border-yellow-500/30 bg-yellow-50/40 dark:bg-yellow-950/20 p-3 space-y-2 sm:col-span-2 lg:col-span-1">
+            <p className="text-xs font-semibold flex items-center gap-1.5 text-yellow-700 dark:text-yellow-400">
+              ⚡ Consumo energético
+            </p>
+            <p className="text-xs text-muted-foreground">
+              Registra lecturas de gas, agua o energía para el mes actual enviando el código seguido del valor numérico.
+            </p>
+            <div className="flex flex-wrap gap-1.5">
+              {[
+                { code: "GAS: 450", desc: "Gas en m³" },
+                { code: "AGUA: 230", desc: "Agua en m³" },
+                { code: "ENERGIA: 1200", desc: "Electricidad en kWh" },
+              ].map(({ code, desc }) => (
+                <div key={code} className="flex flex-col gap-0.5">
+                  <code className="bg-yellow-100 dark:bg-yellow-900/40 text-yellow-800 dark:text-yellow-300 text-[11px] font-mono px-2 py-0.5 rounded border border-yellow-300/50">{code}</code>
+                  <span className="text-[10px] text-muted-foreground">{desc}</span>
+                </div>
+              ))}
+            </div>
+            <p className="text-[11px] text-muted-foreground">Se puede agregar nota al final: <em>"GAS: 450 revisión mes mayo"</em></p>
+          </div>
         </div>
       </div>
 

@@ -1,14 +1,15 @@
 import { db } from "./db";
 import {
-  spaces, spaceItems, waUsers, tickets, messages, spacePhotos,
+  spaces, spaceItems, waUsers, tickets, messages, spacePhotos, energyReadings,
   type Space, type InsertSpace,
   type SpaceItem, type InsertSpaceItem,
   type WaUser, type InsertWaUser,
   type Ticket, type InsertTicket, type TicketWithRelations,
   type Message, type InsertMessage,
   type SpacePhoto, type InsertSpacePhoto,
+  type EnergyReading, type InsertEnergyReading,
 } from "@shared/schema";
-import { eq, desc, asc } from "drizzle-orm";
+import { eq, desc, asc, and } from "drizzle-orm";
 
 export interface IStorage {
   // Spaces
@@ -48,6 +49,11 @@ export interface IStorage {
   getAllPhotos(): Promise<SpacePhoto[]>;
   createSpacePhoto(photo: InsertSpacePhoto): Promise<SpacePhoto>;
   deleteSpacePhoto(id: number): Promise<void>;
+
+  // Energy Readings
+  getEnergyReadings(filters?: { type?: string; year?: number }): Promise<EnergyReading[]>;
+  createEnergyReading(reading: InsertEnergyReading): Promise<EnergyReading>;
+  deleteEnergyReading(id: number): Promise<void>;
 
   // Stats
   getTicketStats(): Promise<{ title: string; count: number; spaceId: number; spaceName: string }[]>;
@@ -174,6 +180,25 @@ export class DatabaseStorage implements IStorage {
   }
   async deleteSpacePhoto(id: number): Promise<void> {
     await db.delete(spacePhotos).where(eq(spacePhotos.id, id));
+  }
+
+  // ── Energy Readings ──────────────────────────────────────
+  async getEnergyReadings(filters?: { type?: string; year?: number }): Promise<EnergyReading[]> {
+    let query = db.select().from(energyReadings);
+    const conditions = [];
+    if (filters?.type) conditions.push(eq(energyReadings.type, filters.type));
+    if (filters?.year) conditions.push(eq(energyReadings.year, filters.year));
+    if (conditions.length > 0) {
+      return db.select().from(energyReadings).where(and(...conditions)).orderBy(desc(energyReadings.year), desc(energyReadings.month));
+    }
+    return db.select().from(energyReadings).orderBy(desc(energyReadings.year), desc(energyReadings.month));
+  }
+  async createEnergyReading(reading: InsertEnergyReading): Promise<EnergyReading> {
+    const [r] = await db.insert(energyReadings).values(reading).returning();
+    return r;
+  }
+  async deleteEnergyReading(id: number): Promise<void> {
+    await db.delete(energyReadings).where(eq(energyReadings.id, id));
   }
 
   // ── Stats ────────────────────────────────────────────────

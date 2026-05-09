@@ -265,6 +265,35 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     }
   });
 
+  // ── Energy Readings ───────────────────────────────────────────────────────
+  app.get("/api/energy", async (req, res) => {
+    const { type, year } = req.query;
+    const filters: { type?: string; year?: number } = {};
+    if (type && typeof type === "string") filters.type = type;
+    if (year && !isNaN(Number(year))) filters.year = Number(year);
+    res.json(await storage.getEnergyReadings(Object.keys(filters).length ? filters : undefined));
+  });
+
+  app.post("/api/energy", async (req, res) => {
+    try {
+      const { insertEnergyReadingSchema } = await import("@shared/schema");
+      const data = insertEnergyReadingSchema.parse(req.body);
+      const reading = await storage.createEnergyReading(data);
+      res.status(201).json(reading);
+    } catch (err: any) {
+      res.status(400).json({ message: err.message });
+    }
+  });
+
+  app.delete("/api/energy/:id", async (req, res) => {
+    try {
+      await storage.deleteEnergyReading(Number(req.params.id));
+      res.status(204).end();
+    } catch (err) {
+      res.status(500).json({ message: "Error al eliminar lectura" });
+    }
+  });
+
   // ── Stats ─────────────────────────────────────────────────────────────────
   app.get("/api/stats/tickets", async (req, res) => {
     res.json(await storage.getTicketStats());
@@ -311,8 +340,41 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
         caption = body.caption || content;
       }
 
-      // ── Detect space code ─────────────────────────────────────────────────
+      // ── Detect energy reading (GAS / AGUA / ENERGIA) ─────────────────────
       const textToSearch = content || caption;
+      const energyMatch = textToSearch.match(/^(GAS|AGUA|ENERG[IÍ]A)\s*:\s*([\d.,]+)\s*(m3|m³|kwh|kWh)?(?:\s+(.*))?$/i);
+      if (energyMatch) {
+        const { ENERGY_CODES, ENERGY_UNITS } = await import("@shared/schema");
+        const rawType = energyMatch[1].toUpperCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+        const normalizedKey = rawType === "ENERGIA" ? "ENERGIA" : rawType;
+        const energyType = ENERGY_CODES[normalizedKey] ?? ENERGY_CODES[rawType];
+        const rawValue = energyMatch[2].replace(",", ".");
+        const value = parseFloat(rawValue);
+        if (energyType && !isNaN(value)) {
+          const now = new Date();
+          const waUser = await storage.getWaUserByPhone(sender);
+          const senderName = waUser ? waUser.name : sender;
+          await storage.createEnergyReading({
+            type: energyType,
+            month: now.getMonth() + 1,
+            year: now.getFullYear(),
+            value,
+            unit: ENERGY_UNITS[energyType],
+            notes: energyMatch[4]?.trim() || null,
+            sender: senderName,
+            source: "whatsapp",
+          });
+          return res.status(200).json({
+            success: true,
+            energyType,
+            value,
+            month: now.getMonth() + 1,
+            year: now.getFullYear(),
+          });
+        }
+      }
+
+      // ── Detect space code ─────────────────────────────────────────────────
       const codeMatch =
         textToSearch.match(/^(\w[\w\s-]*?)\s*:/i) ||
         textToSearch.match(/Habitaci[oó]n\s+(\w+)/i) ||

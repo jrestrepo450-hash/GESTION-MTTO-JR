@@ -1,4 +1,4 @@
-import { Building2, LayoutDashboard, MapPin, Users, ClipboardList } from "lucide-react";
+import { Building2, LayoutDashboard, MapPin, Users, ClipboardList, Zap } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import {
   Sidebar,
@@ -16,6 +16,7 @@ const items = [
   { title: "Panel Principal", url: "/", icon: LayoutDashboard },
   { title: "Espacios", url: "/spaces", icon: MapPin },
   { title: "Pendientes", url: "/pendientes", icon: ClipboardList },
+  { title: "Consumo Energético", url: "/consumo", icon: Zap },
   { title: "Usuarios WhatsApp", url: "/usuarios", icon: Users },
 ];
 
