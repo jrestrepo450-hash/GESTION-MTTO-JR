@@ -15,6 +15,7 @@ import Consumo from "@/pages/consumo";
 import Preventivo from "@/pages/preventivo";
 import Inventario from "@/pages/inventario";
 import Reporte from "@/pages/reporte";
+import Piscina from "@/pages/piscina";
 
 function Router() {
   return (
@@ -28,6 +29,7 @@ function Router() {
       <Route path="/preventivo" component={Preventivo} />
       <Route path="/inventario" component={Inventario} />
       <Route path="/reporte" component={Reporte} />
+      <Route path="/piscina" component={Piscina} />
       <Route component={NotFound} />
     </Switch>
   );

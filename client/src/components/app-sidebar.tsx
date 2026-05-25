@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { Building2, LayoutDashboard, MapPin, Users, ClipboardList, Zap, CalendarCheck, Package, FileBarChart, Search, X } from "lucide-react";
+import { Building2, LayoutDashboard, MapPin, Users, ClipboardList, Zap, CalendarCheck, Package, FileBarChart, Search, X, Waves } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import {
   Sidebar,
@@ -20,6 +20,7 @@ const items = [
   { title: "Consumo Energético", url: "/consumo", icon: Zap },
   { title: "Preventivo", url: "/preventivo", icon: CalendarCheck },
   { title: "Inventario", url: "/inventario", icon: Package },
+  { title: "Piscina", url: "/piscina", icon: Waves },
   { title: "Reporte Mensual", url: "/reporte", icon: FileBarChart },
   { title: "Usuarios WhatsApp", url: "/usuarios", icon: Users },
 ];

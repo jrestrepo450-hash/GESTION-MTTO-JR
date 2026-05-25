@@ -2,6 +2,7 @@ import { db } from "./db";
 import {
   spaces, spaceItems, waUsers, tickets, messages, spacePhotos, energyReadings,
   preventiveTasks, materials, ticketMaterials,
+  poolConfigs, poolReadings,
   type Space, type InsertSpace,
   type SpaceItem, type InsertSpaceItem,
   type WaUser, type InsertWaUser,
@@ -12,6 +13,8 @@ import {
   type PreventiveTask, type InsertPreventiveTask, type PreventiveTaskWithSpace,
   type Material, type InsertMaterial,
   type TicketMaterial, type InsertTicketMaterial, type TicketMaterialWithDetails,
+  type PoolConfig, type InsertPoolConfig,
+  type PoolReading, type InsertPoolReading,
   PREV_FREQ_DAYS,
 } from "@shared/schema";
 import { eq, desc, asc, and, lte } from "drizzle-orm";
@@ -78,6 +81,13 @@ export interface IStorage {
   getTicketMaterials(ticketId: number): Promise<TicketMaterialWithDetails[]>;
   addTicketMaterial(tm: InsertTicketMaterial): Promise<TicketMaterial>;
   deleteTicketMaterial(id: number): Promise<void>;
+
+  // Pool
+  getPoolConfig(): Promise<PoolConfig | null>;
+  upsertPoolConfig(config: Partial<InsertPoolConfig>): Promise<PoolConfig>;
+  getPoolReadings(limit?: number): Promise<PoolReading[]>;
+  createPoolReading(reading: InsertPoolReading): Promise<PoolReading>;
+  deletePoolReading(id: number): Promise<void>;
 
   // Stats
   getTicketStats(): Promise<{ title: string; count: number; spaceId: number; spaceName: string }[]>;
@@ -289,6 +299,36 @@ export class DatabaseStorage implements IStorage {
       if (mat) await db.update(materials).set({ stock: (mat.stock ?? 0) + tm.quantity }).where(eq(materials.id, tm.materialId));
     }
     await db.delete(ticketMaterials).where(eq(ticketMaterials.id, id));
+  }
+
+  // ── Pool ─────────────────────────────────────────────────
+  async getPoolConfig(): Promise<PoolConfig | null> {
+    const rows = await db.select().from(poolConfigs).limit(1);
+    return rows[0] ?? null;
+  }
+  async upsertPoolConfig(config: Partial<InsertPoolConfig>): Promise<PoolConfig> {
+    const existing = await this.getPoolConfig();
+    if (existing) {
+      const [updated] = await db.update(poolConfigs).set({ ...config, updatedAt: new Date() }).where(eq(poolConfigs.id, existing.id)).returning();
+      return updated;
+    }
+    const [created] = await db.insert(poolConfigs).values({
+      name: config.name ?? "Piscina Principal",
+      volumeM3: config.volumeM3 ?? 100,
+      type: config.type ?? "exterior",
+      notes: config.notes ?? null,
+    }).returning();
+    return created;
+  }
+  async getPoolReadings(limit = 50): Promise<PoolReading[]> {
+    return db.select().from(poolReadings).orderBy(desc(poolReadings.readingDate)).limit(limit);
+  }
+  async createPoolReading(reading: InsertPoolReading): Promise<PoolReading> {
+    const [r] = await db.insert(poolReadings).values(reading).returning();
+    return r;
+  }
+  async deletePoolReading(id: number): Promise<void> {
+    await db.delete(poolReadings).where(eq(poolReadings.id, id));
   }
 
   // ── Energy Readings ──────────────────────────────────────

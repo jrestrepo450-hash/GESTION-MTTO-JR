@@ -234,3 +234,50 @@ export type InsertTicketMaterial = z.infer<typeof insertTicketMaterialSchema>;
 export type TicketMaterialWithDetails = TicketMaterial & {
   material?: Material;
 };
+
+// ─── Pool Maintenance ─────────────────────────────────────────────────────────
+export const poolConfigs = pgTable("pool_configs", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull().default("Piscina Principal"),
+  volumeM3: real("volume_m3").notNull().default(100), // pool volume in m³
+  type: text("type").notNull().default("exterior"), // "interior" | "exterior"
+  notes: text("notes"),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const insertPoolConfigSchema = createInsertSchema(poolConfigs).omit({ id: true, updatedAt: true });
+export type PoolConfig = typeof poolConfigs.$inferSelect;
+export type InsertPoolConfig = z.infer<typeof insertPoolConfigSchema>;
+
+// Chemical readings log
+export const poolReadings = pgTable("pool_readings", {
+  id: serial("id").primaryKey(),
+  poolId: integer("pool_id").notNull().references(() => poolConfigs.id, { onDelete: "cascade" }),
+  readingDate: timestamp("reading_date").notNull().defaultNow(),
+  ph: real("ph"),                          // ideal 7.2–7.6
+  freeChlorine: real("free_chlorine"),    // ppm, ideal 0.5–1.5
+  totalAlkalinity: real("total_alkalinity"), // ppm, ideal 80–120
+  calciumHardness: real("calcium_hardness"), // ppm, ideal 200–400
+  cyanuricAcid: real("cyanuric_acid"),    // ppm, ideal 30–50 (exterior)
+  temperature: real("temperature"),       // °C
+  turbidity: text("turbidity"),           // "clara" | "turbia" | "muy_turbia"
+  notes: text("notes"),
+  technician: text("technician"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const insertPoolReadingSchema = createInsertSchema(poolReadings).omit({ id: true, createdAt: true });
+export type PoolReading = typeof poolReadings.$inferSelect;
+export type InsertPoolReading = z.infer<typeof insertPoolReadingSchema>;
+
+// Pool parameter ideal ranges and labels
+export const POOL_PARAMS = {
+  ph:               { label: "pH",                   unit: "",     min: 7.2,  max: 7.6,  warn: 0.2 },
+  freeChlorine:     { label: "Cloro libre",           unit: "ppm",  min: 0.5,  max: 1.5,  warn: 0.5 },
+  totalAlkalinity:  { label: "Alcalinidad total",     unit: "ppm",  min: 80,   max: 120,  warn: 20  },
+  calciumHardness:  { label: "Dureza cálcica",        unit: "ppm",  min: 200,  max: 400,  warn: 50  },
+  cyanuricAcid:     { label: "Ácido isocianúrico",    unit: "ppm",  min: 30,   max: 50,   warn: 10  },
+  temperature:      { label: "Temperatura",           unit: "°C",   min: 24,   max: 30,   warn: 2   },
+} as const;
+
+export type PoolParamKey = keyof typeof POOL_PARAMS;

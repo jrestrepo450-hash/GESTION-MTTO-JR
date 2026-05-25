@@ -333,6 +333,37 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
     res.status(204).end();
   });
 
+  // ── Pool ──────────────────────────────────────────────────────────────────
+  app.get("/api/pool/config", async (req, res) => {
+    res.json(await storage.getPoolConfig());
+  });
+  app.post("/api/pool/config", async (req, res) => {
+    try { res.json(await storage.upsertPoolConfig(req.body)); }
+    catch (err: any) { res.status(400).json({ message: err.message }); }
+  });
+  app.get("/api/pool/readings", async (req, res) => {
+    const limit = req.query.limit ? Number(req.query.limit) : 50;
+    res.json(await storage.getPoolReadings(limit));
+  });
+  app.post("/api/pool/readings", async (req, res) => {
+    try {
+      const { insertPoolReadingSchema } = await import("@shared/schema");
+      const body = { ...req.body, readingDate: req.body.readingDate ? new Date(req.body.readingDate) : new Date() };
+      // Ensure poolId exists — create default config if needed
+      let poolId = body.poolId;
+      if (!poolId) {
+        const cfg = await storage.getPoolConfig() ?? await storage.upsertPoolConfig({});
+        poolId = cfg.id;
+      }
+      const data = insertPoolReadingSchema.parse({ ...body, poolId });
+      res.status(201).json(await storage.createPoolReading(data));
+    } catch (err: any) { res.status(400).json({ message: err.message }); }
+  });
+  app.delete("/api/pool/readings/:id", async (req, res) => {
+    await storage.deletePoolReading(Number(req.params.id));
+    res.status(204).end();
+  });
+
   // ── Search ─────────────────────────────────────────────────────────────────
   app.get("/api/search", async (req, res) => {
     const q = (req.query.q as string || "").toLowerCase().trim();
