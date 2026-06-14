@@ -116,15 +116,38 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
   app.post(api.spaceItems.create.path, async (req, res) => {
     try {
       const body = { ...req.body, spaceId: Number(req.params.spaceId) };
+
+      // 🛡️ Escudo protector: Traduce "vale" a "OK" y estandariza fuera de servicio
+      if (body.status) {
+        const currentStatus = body.status.toLowerCase();
+        if (currentStatus === "vale") {
+          body.status = "OK";
+        } else if (currentStatus === "fuera de servicio" || currentStatus === "fuera_de_servicio") {
+          body.status = "fuera_de_servicio";
+        }
+      }
+
       res.status(201).json(await storage.createSpaceItem(body));
     } catch (err) {
       res.status(500).json({ message: "Error interno" });
     }
   });
 
-  app.put(api.spaceItems.update.path, async (req, res) => {
+ app.put(api.spaceItems.update.path, async (req, res) => {
     try {
-      res.json(await storage.updateSpaceItem(Number(req.params.id), req.body));
+      const body = { ...req.body };
+
+      // 🛡️ Escudo protector al editar un equipo
+      if (body.status) {
+        const currentStatus = body.status.toLowerCase();
+        if (currentStatus === "vale") {
+          body.status = "OK";
+        } else if (currentStatus === "fuera de servicio" || currentStatus === "fuera_de_servicio") {
+          body.status = "fuera_de_servicio";
+        }
+      }
+
+      res.json(await storage.updateSpaceItem(Number(req.params.id), body));
     } catch (err) {
       res.status(500).json({ message: "Error interno" });
     }
