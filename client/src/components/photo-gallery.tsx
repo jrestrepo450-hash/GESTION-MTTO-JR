@@ -165,7 +165,7 @@ export function PhotoGallery({ spaceId, spaceCode }: PhotoGalleryProps) {
                     <SelectValue placeholder="Seleccionar usuario (opcional)" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">Sin especificar</SelectItem>
+                    <SelectItem value="unassigned">Sin especificar</SelectItem>
                     {waUsers?.map(u => (
                       <SelectItem key={u.id} value={u.name}>{u.name} — {u.role}</SelectItem>
                     ))}
