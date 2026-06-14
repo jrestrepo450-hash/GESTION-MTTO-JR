@@ -70,7 +70,7 @@ export default function SpaceDetail() {
   const [ticketPriority, setTicketPriority] = useState("media");
   const [ticketAssigned
     
-    , setTicketAssigned] = useState<string>("");
+  , setTicketAssigned] = useState<string>("unassigned");
 
   if (isLoading) return <div className="p-10 text-center text-muted-foreground">Cargando espacio...</div>;
   if (!space) return (
@@ -269,10 +269,10 @@ export default function SpaceDetail() {
                     </div>
                     <div>
                       <label className="text-xs font-medium text-muted-foreground mb-1 block">Asignar a</label>
-                      <Select value={ticketAssigned} onValueChange={setTicketAssigned}>
+                      <Select value={ticketAssigned || "unassigned"} onValueChange={setTicketAssigned}>
                         <SelectTrigger data-testid="select-ticket-assigned"><SelectValue placeholder="Sin asignar" /></SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="">Sin asignar</SelectItem>
+                          <SelectItem value="unassigned">Sin asignar</SelectItem>
                           {waUsers?.map(u => (
                             <SelectItem key={u.id} value={String(u.id)}>{u.name}</SelectItem>
                           ))}
