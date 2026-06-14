@@ -22,11 +22,18 @@ import {
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 
-const STATUS_LABELS: Record<string, string> = { pendiente: "Pendiente", en_progreso: "En Progreso", resuelto: "Resuelto" };
+const STATUS_LABELS: Record<string, string> = { 
+  pendiente: "Pendiente", 
+  Pendiente: "Pendiente", // 🛡️ Soporte para P mayúscula
+  en_progreso: "En Progreso", 
+  resuelto: "Resuelto" 
+};
+
 const STATUS_COLORS: Record<string, string> = {
   pendiente: "border-amber-400 text-amber-600 bg-amber-50 dark:bg-amber-900/20",
+  Pendiente: "border-amber-400 text-amber-600 bg-amber-50 dark:bg-amber-900/20", // 🛡️ Mismo color
   en_progreso: "border-blue-400 text-blue-600 bg-blue-50 dark:bg-blue-900/20",
-  resuelto: "border-green-400 text-green-600 bg-green-50 dark:bg-green-900/20",
+  resuelto: "border-green-400 text-green-600 bg-green-50 dark:bg-green-900/20"
 };
 const PRIORITY_COLORS: Record<string, string> = {
   baja: "text-slate-500", media: "text-blue-500", alta: "text-amber-500", urgente: "text-red-500 font-bold",
@@ -96,7 +103,7 @@ export default function Tickets() {
             <form onSubmit={handleCreate} className="space-y-4 mt-2">
               <div>
                 <label className="text-sm font-medium block mb-1">Espacio *</label>
-                <Select value={spaceId} onValueChange={setSpaceId}>
+                <Select value={spaceId || undefined} onValueChange={setSpaceId}>
                   <SelectTrigger data-testid="select-space"><SelectValue placeholder="Seleccionar espacio" /></SelectTrigger>
                   <SelectContent>
                     {spaces?.map(s => (
