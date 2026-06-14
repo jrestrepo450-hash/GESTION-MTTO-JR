@@ -147,7 +147,7 @@ export default function Tickets() {
                   <Select value={assignedToId || "none"} onValueChange={setAssignedToId}>
                     <SelectTrigger><SelectValue placeholder="Sin asignar" /></SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="unassigned">Sin asignar</SelectItem>
+                      <SelectItem value="none">Sin asignar</SelectItem>
                       {waUsers?.map(u => (
                         <SelectItem key={u.id} value={String(u.id)}>{u.name}</SelectItem>
                       ))}
