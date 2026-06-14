@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from "react";
-import { Building2, LayoutDashboard, MapPin, Users, ClipboardList, Zap, CalendarCheck, Package, FileBarChart, Search, X, Waves } from "lucide-react";
+import { Building2, LayoutDashboard, MapPin, Users, ClipboardList, Zap, CalendarCheck, Package, Waves, FileBarChart,  Search, X, Sun, Moon } from "lucide-react";
 import { Link, useLocation } from "wouter";
-import {
+import { 
   Sidebar,
   SidebarContent,
   SidebarGroup,
@@ -128,15 +128,26 @@ function GlobalSearch() {
 
 export function AppSidebar() {
   const [location] = useLocation();
+  const [theme, setTheme] = useState(() => localStorage.getItem("theme") || "light");
+
+  useEffect(() => {
+    const root = window.document.documentElement;
+    if (theme === "dark") {
+      root.classList.add("dark");
+    } else {
+      root.classList.remove("dark");
+    }
+    localStorage.setItem("theme", theme);
+  }, [theme]);
   return (
     <Sidebar className="border-r border-border/50">
       <SidebarHeader className="p-5 border-b border-border/50">
         <div className="flex items-center gap-3">
           <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary shadow">
-            <Building2 className="h-5 w-5 text-primary-foreground" />
+            <img src="/favicon.png.png" className="h-6 w-6 object-contain" />
           </div>
           <div>
-            <div className="font-bold text-base leading-tight text-sidebar-foreground">Gran Hotel</div>
+            <div className="font-bold text-base leading-tight text-sidebar-foreground">gestion mtto Hotel</div>
             <div className="text-xs text-muted-foreground">Mantenimiento</div>
           </div>
         </div>
@@ -179,6 +190,24 @@ export function AppSidebar() {
           </SidebarGroupContent>
         </SidebarGroup>
       </SidebarContent>
+      <div className="p-4 border-t border-border/50 mt-auto">
+        <button
+          onClick={() => setTheme(theme === "light" ? "dark" : "light")}
+          className="flex items-center gap-3 w-full px-3 py-2 text-sm font-medium rounded-md hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-colors"
+        >
+          {theme === "light" ? (
+            <>
+              <Moon className="h-4 w-4" />
+              <span>Modo Oscuro</span>
+            </>
+          ) : (
+            <>
+              <Sun className="h-4 w-4" />
+              <span>Modo Claro</span>
+            </>
+          )}
+        </button>
+      </div>
     </Sidebar>
   );
 }

@@ -1,0 +1,174 @@
+[1G[0K⠙[1G[0K
+> rest-express@1.0.0 dev
+> NODE_ENV=development tsx server/index.ts
+
+[1G[0K⠙[1G[0K7:41:18 PM [express] serving on port 5000
+Browserslist: browsers data (caniuse-lite) is 7 months old. Please run:
+  npx update-browserslist-db@latest
+  Why you should do it regularly: https://github.com/browserslist/update-db#readme
+7:41:24 PM [express] GET /api/wa-users 304 in 9ms :: [{"id":2,"name":"JEFE DE MTTO","phone":"+573113417681","role":"supervisor","active":true,"createdAt":"2026-05-08T01:41:03.099Z"},{"id":1,"name":"LAURA","phone":"+573043306876","role":"tecnico","active":true,"createdAt":"2026-05-08T01:41:03.094Z"}]
+7:41:24 PM [express] GET /api/spaces 304 in 24ms :: [{"id":1,"code":"101","name":"Habitación 101","type":"habitacion","notes":"","createdAt":"2026-05-08T01:41:02.983Z"},{"id":2,"code":"102","name":"Habitación 102","type":"habitacion","notes":"","createdAt":"2026-05-08T01:41:03.024Z"},{"id":9,"code":"201","name":"habitación 201","type":"habitacion","notes":"","createdAt":"2026-05-08T01:48:54.451Z"},{"id":4,"code":"COCINA","name":"Cocina Central","type":"cocina","notes":"","createdAt":"2026-05-08T01:41:03.037Z"},{"id":3,"code":"LOBBY","name":"Lobby Principal","type":"lobby","notes":"","createdAt":"2026-05-08T01:41:03.031Z"},{"id":6,"code":"PLANTA DE EMERGENCIA ","name":"planta de emergencia","type":"otro","notes":"respaldo energético","createdAt":"2026-05-08T01:44:11.803Z"},{"id":7,"code":"RCI","name":"RED CONTRA INCENDIO","type":"otro","notes":"RCI","createdAt":"2026-05-08T01:47:18.967Z"},{"id":8,"code":"SOTANO 1","name":"SOTANO","type":"area_publica","notes":"","createdAt":"2026-05-08T01:47:58.627Z"},{"id":5,"code":"SUB-1","name":"Subestación 1","type":"subestacion","notes":"","createdAt":"2026-05-08T01:41:03.041Z"}]
+7:41:24 PM [express] GET /api/tickets 304 in 31ms :: [{"id":3,"spaceId":3,"itemId":null,"title":"Manchas en paredes lobby","description":"Manchas de humedad en pared norte del lobby","status":"en_progreso","priority":"media","assignedToId":null,"createdById":2,"resolvedAt":null,"createdAt":"2026-05-08T01:41:03.133Z","space":{"id":3,"code":"LOBBY","name":"Lobby Principal","type":"lobby","notes":"","createdAt":"2026-05-08T01:41:03.031Z"},"item":null,"assignedTo":null,"createdBy":{"id":2,"name":"JEFE DE MTTO","phone":"+573113417681","role":"supervisor","active":true,"createdAt":"2026-05-08T01:41:03.099Z"}},{"id":2,"spaceId":2,"itemId":null,"title":"Vidrio de baño roto","description":"Vidrio de mampara en baño está roto, riesgo de seguridad","status":"resuelto","priority":"urgente","assignedToId":1,"createdById":2,"resolvedAt":"2026-05-08T01:54:31.421Z","createdAt":"2026-05-08T01:41:03.112Z","space":{"id":2,"code":"102","name":"Habitación 102","type":"habitacion","notes":"","createdAt":"2026-05-08T01:41:03.024Z"},"item":null,"assignedTo":{"id":1,"name":"LAURA","phone":"+573043306876","role":"tecnico","active":true,"createdAt":"2026-05-08T01:41:03.094Z"},"createdBy":{"id":2,"name":"JEFE DE MTTO","phone":"+573113417681","role":"supervisor","active":true,"createdAt":"2026-05-08T01:41:03.099Z"}},{"id":1,"spaceId":1,"itemId":null,"title":"TV con pantalla dañada","description":"Pantalla tiene líneas horizontales visibles","status":"resuelto","priority":"alta","assignedToId":1,"createdById":2,"resolvedAt":"2026-05-08T01:54:15.498Z","createdAt":"2026-05-08T01:41:03.104Z","space":{"id":1,"code":"101","name":"Habitación 101","type":"habitacion","notes":"","createdAt":"2026-05-08T01:41:02.983Z"},"item":null,"assignedTo":{"id":1,"name":"LAURA","phone":"+573043306876","role":"tecnico","active":true,"createdAt":"2026-05-08T01:41:03.094Z"},"createdBy":{"id":2,"name":"JEFE DE MTTO","phone":"+573113417681","role":"supervisor","active":true,"createdAt":"2026-05-08T01:41:03.099Z"}}]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+[1;1H[0J[2m7:44:55 PM[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/dashboard.tsx, /src/pages/spaces-list.tsx, /src/pages/space-detail.tsx, /src/components/space-form-dialog.tsx, /src/pages/tickets.tsx, /src/pages/wa-users.tsx[22m
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+[1;1H[0J[2m7:47:57 PM[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/dashboard.tsx, /src/index.css[22m
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+[1;1H[0J[2m7:48:05 PM[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/space-detail.tsx, /src/index.css[22m
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+[1;1H[0J[2m7:48:23 PM[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/space-detail.tsx, /src/index.css[22m [33m(x2)[39m
+[2m7:48:26 PM[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32m✨ new dependencies optimized: [33mrecharts[32m[39m
+[2m7:48:26 PM[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32m✨ optimized dependencies changed. reloading[39m
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+[1;1H[0J[2m7:48:29 PM[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/space-detail.tsx, /src/index.css[22m
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+[1;1H[0J[2m7:48:30 PM[22m [36m[1m[vite][22m[39m [90m[2m(client)[22m[39m [32mhmr update [39m[2m/src/pages/dashboard.tsx, /src/index.css[22m
+7:48:36 PM [express] GET /api/spaces 304 in 55ms :: [{"id":1,"code":"101","name":"Habitación 101","type":"habitacion","notes":"","createdAt":"2026-05-08T01:41:02.983Z"},{"id":2,"code":"102","name":"Habitación 102","type":"habitacion","notes":"","createdAt":"2026-05-08T01:41:03.024Z"},{"id":9,"code":"201","name":"habitación 201","type":"habitacion","notes":"","createdAt":"2026-05-08T01:48:54.451Z"},{"id":4,"code":"COCINA","name":"Cocina Central","type":"cocina","notes":"","createdAt":"2026-05-08T01:41:03.037Z"},{"id":3,"code":"LOBBY","name":"Lobby Principal","type":"lobby","notes":"","createdAt":"2026-05-08T01:41:03.031Z"},{"id":6,"code":"PLANTA DE EMERGENCIA ","name":"planta de emergencia","type":"otro","notes":"respaldo energético","createdAt":"2026-05-08T01:44:11.803Z"},{"id":7,"code":"RCI","name":"RED CONTRA INCENDIO","type":"otro","notes":"RCI","createdAt":"2026-05-08T01:47:18.967Z"},{"id":8,"code":"SOTANO 1","name":"SOTANO","type":"area_publica","notes":"","createdAt":"2026-05-08T01:47:58.627Z"},{"id":5,"code":"SUB-1","name":"Subestación 1","type":"subestacion","notes":"","createdAt":"2026-05-08T01:41:03.041Z"}]
+7:48:36 PM [express] GET /api/wa-users 304 in 61ms :: [{"id":2,"name":"JEFE DE MTTO","phone":"+573113417681","role":"supervisor","active":true,"createdAt":"2026-05-08T01:41:03.099Z"},{"id":1,"name":"LAURA","phone":"+573043306876","role":"tecnico","active":true,"createdAt":"2026-05-08T01:41:03.094Z"}]
+7:48:36 PM [express] GET /api/tickets 304 in 84ms :: [{"id":3,"spaceId":3,"itemId":null,"title":"Manchas en paredes lobby","description":"Manchas de humedad en pared norte del lobby","status":"en_progreso","priority":"media","assignedToId":null,"createdById":2,"resolvedAt":null,"createdAt":"2026-05-08T01:41:03.133Z","space":{"id":3,"code":"LOBBY","name":"Lobby Principal","type":"lobby","notes":"","createdAt":"2026-05-08T01:41:03.031Z"},"item":null,"assignedTo":null,"createdBy":{"id":2,"name":"JEFE DE MTTO","phone":"+573113417681","role":"supervisor","active":true,"createdAt":"2026-05-08T01:41:03.099Z"}},{"id":2,"spaceId":2,"itemId":null,"title":"Vidrio de baño roto","description":"Vidrio de mampara en baño está roto, riesgo de seguridad","status":"resuelto","priority":"urgente","assignedToId":1,"createdById":2,"resolvedAt":"2026-05-08T01:54:31.421Z","createdAt":"2026-05-08T01:41:03.112Z","space":{"id":2,"code":"102","name":"Habitación 102","type":"habitacion","notes":"","createdAt":"2026-05-08T01:41:03.024Z"},"item":null,"assignedTo":{"id":1,"name":"LAURA","phone":"+573043306876","role":"tecnico","active":true,"createdAt":"2026-05-08T01:41:03.094Z"},"createdBy":{"id":2,"name":"JEFE DE MTTO","phone":"+573113417681","role":"supervisor","active":true,"createdAt":"2026-05-08T01:41:03.099Z"}},{"id":1,"spaceId":1,"itemId":null,"title":"TV con pantalla dañada","description":"Pantalla tiene líneas horizontales visibles","status":"resuelto","priority":"alta","assignedToId":1,"createdById":2,"resolvedAt":"2026-05-08T01:54:15.498Z","createdAt":"2026-05-08T01:41:03.104Z","space":{"id":1,"code":"101","name":"Habitación 101","type":"habitacion","notes":"","createdAt":"2026-05-08T01:41:02.983Z"},"item":null,"assignedTo":{"id":1,"name":"LAURA","phone":"+573043306876","role":"tecnico","active":true,"createdAt":"2026-05-08T01:41:03.094Z"},"createdBy":{"id":2,"name":"JEFE DE MTTO","phone":"+573113417681","role":"supervisor","active":true,"createdAt":"2026-05-08T01:41:03.099Z"}}]
+7:48:50 PM [express] GET /api/stats/tickets 200 in 17ms
+7:48:50 PM [express] GET /api/spaces 200 in 54ms :: [{"id":1,"code":"101","name":"Habitación 101","type":"habitacion","notes":"","createdAt":"2026-05-08T01:41:02.983Z"},{"id":2,"code":"102","name":"Habitación 102","type":"habitacion","notes":"","createdAt":"2026-05-08T01:41:03.024Z"},{"id":9,"code":"201","name":"habitación 201","type":"habitacion","notes":"","createdAt":"2026-05-08T01:48:54.451Z"},{"id":4,"code":"COCINA","name":"Cocina Central","type":"cocina","notes":"","createdAt":"2026-05-08T01:41:03.037Z"},{"id":3,"code":"LOBBY","name":"Lobby Principal","type":"lobby","notes":"","createdAt":"2026-05-08T01:41:03.031Z"},{"id":6,"code":"PLANTA DE EMERGENCIA ","name":"planta de emergencia","type":"otro","notes":"respaldo energético","createdAt":"2026-05-08T01:44:11.803Z"},{"id":7,"code":"RCI","name":"RED CONTRA INCENDIO","type":"otro","notes":"RCI","createdAt":"2026-05-08T01:47:18.967Z"},{"id":8,"code":"SOTANO 1","name":"SOTANO","type":"area_publica","notes":"","createdAt":"2026-05-08T01:47:58.627Z"},{"id":5,"code":"SUB-1","name":"Subestación 1","type":"subestacion","notes":"","createdAt":"2026-05-08T01:41:03.041Z"}]
+7:48:50 PM [express] GET /api/tickets 200 in 58ms :: [{"id":3,"spaceId":3,"itemId":null,"title":"Manchas en paredes lobby","description":"Manchas de humedad en pared norte del lobby","status":"en_progreso","priority":"media","assignedToId":null,"createdById":2,"resolvedAt":null,"createdAt":"2026-05-08T01:41:03.133Z","space":{"id":3,"code":"LOBBY","name":"Lobby Principal","type":"lobby","notes":"","createdAt":"2026-05-08T01:41:03.031Z"},"item":null,"assignedTo":null,"createdBy":{"id":2,"name":"JEFE DE MTTO","phone":"+573113417681","role":"supervisor","active":true,"createdAt":"2026-05-08T01:41:03.099Z"}},{"id":2,"spaceId":2,"itemId":null,"title":"Vidrio de baño roto","description":"Vidrio de mampara en baño está roto, riesgo de seguridad","status":"resuelto","priority":"urgente","assignedToId":1,"createdById":2,"resolvedAt":"2026-05-08T01:54:31.421Z","createdAt":"2026-05-08T01:41:03.112Z","space":{"id":2,"code":"102","name":"Habitación 102","type":"habitacion","notes":"","createdAt":"2026-05-08T01:41:03.024Z"},"item":null,"assignedTo":{"id":1,"name":"LAURA","phone":"+573043306876","role":"tecnico","active":true,"createdAt":"2026-05-08T01:41:03.094Z"},"createdBy":{"id":2,"name":"JEFE DE MTTO","phone":"+573113417681","role":"supervisor","active":true,"createdAt":"2026-05-08T01:41:03.099Z"}},{"id":1,"spaceId":1,"itemId":null,"title":"TV con pantalla dañada","description":"Pantalla tiene líneas horizontales visibles","status":"resuelto","priority":"alta","assignedToId":1,"createdById":2,"resolvedAt":"2026-05-08T01:54:15.498Z","createdAt":"2026-05-08T01:41:03.104Z","space":{"id":1,"code":"101","name":"Habitación 101","type":"habitacion","notes":"","createdAt":"2026-05-08T01:41:02.983Z"},"item":null,"assignedTo":{"id":1,"name":"LAURA","phone":"+573043306876","role":"tecnico","active":true,"createdAt":"2026-05-08T01:41:03.094Z"},"createdBy":{"id":2,"name":"JEFE DE MTTO","phone":"+573113417681","role":"supervisor","active":true,"createdAt":"2026-05-08T01:41:03.099Z"}}]
+7:48:50 PM [express] GET /api/wa-users 200 in 96ms :: [{"id":2,"name":"JEFE DE MTTO","phone":"+573113417681","role":"supervisor","active":true,"createdAt":"2026-05-08T01:41:03.099Z"},{"id":1,"name":"LAURA","phone":"+573043306876","role":"tecnico","active":true,"createdAt":"2026-05-08T01:41:03.094Z"}]
+7:48:53 PM [express] GET /api/spaces/1 200 in 10ms :: {"id":1,"code":"101","name":"Habitación 101","type":"habitacion","notes":"","createdAt":"2026-05-08T01:41:02.983Z"}
+7:48:53 PM [express] GET /api/spaces/1/items 200 in 14ms :: [{"id":1,"spaceId":1,"name":"Aire acondicionado","status":"ok","notes":"","lastChecked":"2026-05-08T01:41:03.044Z"},{"id":2,"spaceId":1,"name":"TV 55\"","status":"mantenimiento","notes":"Pantalla con líneas","lastChecked":"2026-05-08T01:41:03.048Z"},{"id":3,"spaceId":1,"name":"Cama King","status":"ok","notes":"","lastChecked":"2026-05-08T01:41:03.051Z"},{"id":4,"spaceId":1,"name":"Detector de humo","status":"ok","notes":"","lastChecked":"2026-05-08T01:41:03.062Z"},{"id":11,"spaceId":1,"name":"BAÑO ","status":"ok","notes":"","lastChecked":"2026-05-08T01:57:41.906Z"},{"id":12,"spaceId":1,"name":"ESPEJOS","status":"ok","notes":"","lastChecked":"2026-05-08T01:58:09.235Z"}]
+7:48:53 PM [express] GET /api/tickets 200 in 19ms :: [{"id":1,"spaceId":1,"itemId":null,"title":"TV con pantalla dañada","description":"Pantalla tiene líneas horizontales visibles","status":"resuelto","priority":"alta","assignedToId":1,"createdById":2,"resolvedAt":"2026-05-08T01:54:15.498Z","createdAt":"2026-05-08T01:41:03.104Z","space":{"id":1,"code":"101","name":"Habitación 101","type":"habitacion","notes":"","createdAt":"2026-05-08T01:41:02.983Z"},"item":null,"assignedTo":{"id":1,"name":"LAURA","phone":"+573043306876","role":"tecnico","active":true,"createdAt":"2026-05-08T01:41:03.094Z"},"createdBy":{"id":2,"name":"JEFE DE MTTO","phone":"+573113417681","role":"supervisor","active":true,"createdAt":"2026-05-08T01:41:03.099Z"}}]
+7:48:53 PM [express] GET /api/wa-users 304 in 25ms :: [{"id":2,"name":"JEFE DE MTTO","phone":"+573113417681","role":"supervisor","active":true,"createdAt":"2026-05-08T01:41:03.099Z"},{"id":1,"name":"LAURA","phone":"+573043306876","role":"tecnico","active":true,"createdAt":"2026-05-08T01:41:03.094Z"}]
+7:48:54 PM [express] GET /api/messages/101 200 in 6ms :: [{"id":1,"spaceCode":"101","content":"Habitación 101: TV tiene líneas en pantalla","sender":"Carlos Técnico","isMaintenanceUpdate":true,"receivedAt":"2026-05-08T01:41:03.137Z"},{"id":2,"spaceCode":"101","content":"Revisado, se necesita reemplazo del panel","sender":"Ana Supervisora","isMaintenanceUpdate":false,"receivedAt":"2026-05-08T01:41:03.141Z"}]
+7:49:03 PM [express] GET /api/spaces/1 304 in 8ms :: {"id":1,"code":"101","name":"Habitación 101","type":"habitacion","notes":"","createdAt":"2026-05-08T01:41:02.983Z"}
+7:49:03 PM [express] GET /api/tickets 304 in 10ms :: [{"id":1,"spaceId":1,"itemId":null,"title":"TV con pantalla dañada","description":"Pantalla tiene líneas horizontales visibles","status":"resuelto","priority":"alta","assignedToId":1,"createdById":2,"resolvedAt":"2026-05-08T01:54:15.498Z","createdAt":"2026-05-08T01:41:03.104Z","space":{"id":1,"code":"101","name":"Habitación 101","type":"habitacion","notes":"","createdAt":"2026-05-08T01:41:02.983Z"},"item":null,"assignedTo":{"id":1,"name":"LAURA","phone":"+573043306876","role":"tecnico","active":true,"createdAt":"2026-05-08T01:41:03.094Z"},"createdBy":{"id":2,"name":"JEFE DE MTTO","phone":"+573113417681","role":"supervisor","active":true,"createdAt":"2026-05-08T01:41:03.099Z"}}]
+7:49:03 PM [express] GET /api/spaces/1/items 304 in 23ms :: [{"id":1,"spaceId":1,"name":"Aire acondicionado","status":"ok","notes":"","lastChecked":"2026-05-08T01:41:03.044Z"},{"id":2,"spaceId":1,"name":"TV 55\"","status":"mantenimiento","notes":"Pantalla con líneas","lastChecked":"2026-05-08T01:41:03.048Z"},{"id":3,"spaceId":1,"name":"Cama King","status":"ok","notes":"","lastChecked":"2026-05-08T01:41:03.051Z"},{"id":4,"spaceId":1,"name":"Detector de humo","status":"ok","notes":"","lastChecked":"2026-05-08T01:41:03.062Z"},{"id":11,"spaceId":1,"name":"BAÑO ","status":"ok","notes":"","lastChecked":"2026-05-08T01:57:41.906Z"},{"id":12,"spaceId":1,"name":"ESPEJOS","status":"ok","notes":"","lastChecked":"2026-05-08T01:58:09.235Z"}]
+7:49:03 PM [express] GET /api/wa-users 304 in 31ms :: [{"id":2,"name":"JEFE DE MTTO","phone":"+573113417681","role":"supervisor","active":true,"createdAt":"2026-05-08T01:41:03.099Z"},{"id":1,"name":"LAURA","phone":"+573043306876","role":"tecnico","active":true,"createdAt":"2026-05-08T01:41:03.094Z"}]
+7:49:04 PM [express] GET /api/messages/101 304 in 2ms :: [{"id":1,"spaceCode":"101","content":"Habitación 101: TV tiene líneas en pantalla","sender":"Carlos Técnico","isMaintenanceUpdate":true,"receivedAt":"2026-05-08T01:41:03.137Z"},{"id":2,"spaceCode":"101","content":"Revisado, se necesita reemplazo del panel","sender":"Ana Supervisora","isMaintenanceUpdate":false,"receivedAt":"2026-05-08T01:41:03.141Z"}]

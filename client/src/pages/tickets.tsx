@@ -50,6 +50,7 @@ export default function Tickets() {
   const [priority, setPriority] = useState("media");
   const [spaceId, setSpaceId] = useState<string>("");
   const [assignedToId, setAssignedToId] = useState<string>("");
+  const [imageFile, setImageFile] = useState<File | null>(null);
 
   const handleCreate = (e: React.FormEvent) => {
     e.preventDefault();
@@ -60,6 +61,7 @@ export default function Tickets() {
       priority: priority as any,
       status: "pendiente",
       spaceId: Number(spaceId),
+      imageUrl: imageFile ? URL.createObjectURL(imageFile) : null,
       assignedToId: assignedToId ? Number(assignedToId) : null,
       createdById: null,
     }, {
@@ -146,6 +148,23 @@ export default function Tickets() {
                   </Select>
                 </div>
               </div>
+              <div className="space-y-2">
+  <label className="text-sm font-medium block">Evidencia Fotográfica</label>
+  <input 
+    type="file" 
+    accept="image/*" 
+    capture="environment"
+    onChange={(e) => {
+      if (e.target.files && e.target.files[0]) {
+        setImageFile(e.target.files[0]);
+      }
+    }}
+    className="block w-full text-sm text-muted-foreground file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-primary file:text-primary-foreground hover:file:opacity-90"
+  />
+  {imageFile && (
+    <p className="text-xs text-green-500">✓ Foto cargada con éxito</p>
+  )}
+</div>
               <Button type="submit" className="w-full" disabled={createTicket.isPending || !title || !spaceId}>
                 {createTicket.isPending ? "Creando..." : "Crear pendiente"}
               </Button>

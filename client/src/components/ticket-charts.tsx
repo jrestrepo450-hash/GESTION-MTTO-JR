@@ -22,22 +22,22 @@ export function GlobalTicketCharts() {
     cantidad: s.count,
   }));
 
-  // Distribución por estado
+  // Distribución por estado (con .toLowerCase() para que lea todo)
   const statusCounts = {
-    Pendiente: tickets?.filter(t => t.status === "pendiente").length ?? 0,
-    "En Progreso": tickets?.filter(t => t.status === "en_progreso").length ?? 0,
-    Resuelto: tickets?.filter(t => t.status === "resuelto").length ?? 0,
+    "Pendiente": tickets?.filter(t => t.status?.toLowerCase() === "pendiente" || t.status?.toLowerCase() === "pendiente").length ?? 0,
+    "En Progreso": tickets?.filter(t => t.status?.toLowerCase().replace(" ", "_") === "en_progreso").length ?? 0,
+    "Resuelto": tickets?.filter(t => t.status?.toLowerCase() === "resuelto").length ?? 0,
   };
   const pieData = Object.entries(statusCounts)
     .filter(([, v]) => v > 0)
     .map(([name, value]) => ({ name, value }));
 
-  // Distribución por prioridad
+  // Distribución por prioridad (con .toLowerCase() para asegurar el match)
   const priorityCounts = {
-    Urgente: tickets?.filter(t => t.priority === "urgente").length ?? 0,
-    Alta: tickets?.filter(t => t.priority === "alta").length ?? 0,
-    Media: tickets?.filter(t => t.priority === "media").length ?? 0,
-    Baja: tickets?.filter(t => t.priority === "baja").length ?? 0,
+    "Urgente": tickets?.filter(t => t.priority?.toLowerCase() === "urgente").length ?? 0,
+    "Alta": tickets?.filter(t => t.priority?.toLowerCase() === "alta").length ?? 0,
+    "Media": tickets?.filter(t => t.priority?.toLowerCase() === "media").length ?? 0,
+    "Baja": tickets?.filter(t => t.priority?.toLowerCase() === "baja").length ?? 0,
   };
   const priorityData = Object.entries(priorityCounts)
     .filter(([, v]) => v > 0)

@@ -48,7 +48,7 @@ export const spaceItems = pgTable("space_items", {
   id: serial("id").primaryKey(),
   spaceId: integer("space_id").notNull().references(() => spaces.id, { onDelete: "cascade" }),
   name: text("name").notNull(), // e.g. "Aire acondicionado", "TV", "Cama"
-  status: text("status").notNull().default("ok"), // "ok" | "mantenimiento" | "fuera_de_servicio"
+  status: text("status").notNull().default("OK"), // "OK" | "pendiente" | "fuera_de_servicio"
   notes: text("notes"),
   lastChecked: timestamp("last_checked").defaultNow(),
 });
@@ -76,6 +76,7 @@ export const tickets = pgTable("tickets", {
   createdById: integer("created_by_id").references(() => waUsers.id, { onDelete: "set null" }),
   resolvedAt: timestamp("resolved_at"),
   createdAt: timestamp("created_at").defaultNow(),
+  imageUrl: text("image_url"),
 });
 
 // ─── Messages ─────────────────────────────────────────────────────────────────
