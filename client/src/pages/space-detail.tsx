@@ -68,10 +68,8 @@ export default function SpaceDetail() {
   const [ticketTitle, setTicketTitle] = useState("");
   const [ticketDesc, setTicketDesc] = useState("");
   const [ticketPriority, setTicketPriority] = useState("media");
-  const [ticketAssigned
-    
-  , setTicketAssigned] = useState<string>("unassigned");
-
+  const [ticketAssigned, setTicketAssigned] = useState<string>("unassigned");
+  
   if (isLoading) return <div className="p-10 text-center text-muted-foreground">Cargando espacio...</div>;
   if (!space) return (
     <div className="p-10 text-center">
