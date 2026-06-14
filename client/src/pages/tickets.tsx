@@ -144,10 +144,10 @@ export default function Tickets() {
                 </div>
                 <div>
                   <label className="text-sm font-medium block mb-1">Asignar a</label>
-                  <Select value={assignedToId} onValueChange={setAssignedToId}>
+                  <Select value={assignedToId || "none"} onValueChange={setAssignedToId}>
                     <SelectTrigger><SelectValue placeholder="Sin asignar" /></SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">Sin asignar</SelectItem>
+                      <div>Sin asignar</div>
                       {waUsers?.map(u => (
                         <SelectItem key={u.id} value={String(u.id)}>{u.name}</SelectItem>
                       ))}

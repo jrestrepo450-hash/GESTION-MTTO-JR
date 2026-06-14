@@ -30,7 +30,7 @@ import { SpaceFormDialog } from "@/components/space-form-dialog";
 
 const STATUS_CONFIG = {
   ok: { label: "OK", icon: <CheckCircle2 className="h-4 w-4" />, class: "text-green-600 bg-green-50 border-green-200 dark:bg-green-900/20" },
-  mantenimiento: { label: "Mantenimiento", icon: <AlertCircle className="h-4 w-4" />, class: "text-amber-600 bg-amber-50 border-amber-200 dark:bg-amber-900/20" },
+  mantenimiento: { label: "en progreso", icon: <AlertCircle className="h-4 w-4" />, class: "text-amber-600 bg-amber-50 border-amber-200 dark:bg-amber-900/20" },
   fuera_de_servicio: { label: "Fuera de servicio", icon: <XCircle className="h-4 w-4" />, class: "text-red-600 bg-red-50 border-red-200 dark:bg-red-900/20" },
 };
 
@@ -68,7 +68,9 @@ export default function SpaceDetail() {
   const [ticketTitle, setTicketTitle] = useState("");
   const [ticketDesc, setTicketDesc] = useState("");
   const [ticketPriority, setTicketPriority] = useState("media");
-  const [ticketAssigned, setTicketAssigned] = useState<string>("");
+  const [ticketAssigned
+    
+    , setTicketAssigned] = useState<string>("");
 
   if (isLoading) return <div className="p-10 text-center text-muted-foreground">Cargando espacio...</div>;
   if (!space) return (
@@ -89,7 +91,7 @@ export default function SpaceDetail() {
   const handleAddItem = (e: React.FormEvent) => {
     e.preventDefault();
     if (!newItemName.trim()) return;
-    createItem.mutate({ name: newItemName, status: "ok", notes: "" }, {
+    createItem.mutate({ name: newItemName, status: "OK", notes: "" }, {
       onSuccess: () => { setNewItemName(""); setAddItemOpen(false); },
     });
   };
@@ -209,8 +211,8 @@ export default function SpaceDetail() {
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="ok">OK</SelectItem>
-                        <SelectItem value="mantenimiento">Mantenimiento</SelectItem>
+                        <SelectItem value="OK">OK</SelectItem>
+                        <SelectItem value="en progreso">en progreso</SelectItem>
                         <SelectItem value="fuera_de_servicio">Fuera de servicio</SelectItem>
                       </SelectContent>
                     </Select>
