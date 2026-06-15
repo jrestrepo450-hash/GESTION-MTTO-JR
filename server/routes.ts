@@ -78,7 +78,6 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
   // --- Spaces
   app.get(api.spaces.list.path, async (req, res) => {
     try {
-      // Consulta directa a SQLite para traer todos los espacios a la pantalla
       const allSpaces = await db.select().from(spaces);
       res.json(allSpaces);
     } catch (err) {
@@ -89,13 +88,12 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
 
   app.get(api.spaces.get.path, async (req, res) => {
     try {
-      // Consulta directa a SQLite filtrando por el ID
       const s = await db.select().from(spaces).where(eq(spaces.id, Number(req.params.id)));
       if (s.length === 0) return res.status(404).json({ message: "Espacio no encontrado" });
       res.json(s[0]);
     } catch (err) {
       console.error("Error al buscar espacio:", err);
-      res.status(500).json({ message: "Error al buscar espacio en SQLite" });
+      res.status(500).json({ message: "Error al buscar espacio" });
     }
   });
 
