@@ -1,11 +1,6 @@
-import process from "process";
-process.env.DATABASE_URL = "local.db";
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
-import { serveStatic } from "./static";
-import { createServer } from "http";
-import path from "path";
-import fs from "fs";
+import { setupVite, serveStatic, log } from "./vite";
 
 const app = express();
 const httpServer = createServer(app);
