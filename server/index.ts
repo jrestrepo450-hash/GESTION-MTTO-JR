@@ -1,3 +1,5 @@
+import process from "process";
+process.env.DATABASE_URL = "local.db";
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { serveStatic } from "./static";
