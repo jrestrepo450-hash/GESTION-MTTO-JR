@@ -39,16 +39,43 @@ export function SpaceFormDialog({ space, trigger }: SpaceFormDialogProps) {
     }
   }, [open, space]);
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!code.trim() || !name.trim()) return;
-    const payload = { code: code.toUpperCase(), name, type, notes };
-    if (space) {
-      updateSpace.mutate({ id: space.id, ...payload }, { onSuccess: () => setOpen(false) });
-    } else {
-      createSpace.mutate(payload, { onSuccess: () => setOpen(false) });
-    }
+  const handleSubmit = async (e: React.FormEvent) => {
+  e.preventDefault();
+  
+  if (!code.trim() || !name.trim()) return;
+
+  const payload = { 
+    code: code.trim().toUpperCase(), 
+    name: name.trim(), 
+    type, 
+    notes 
   };
+
+  try {
+    // Petición directa al backend que acabamos de reparar
+    const response = await fetch("/api/spaces", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+
+    if (response.ok) {
+      // Limpiamos los campos del formulario
+      setCode("");
+      setName("");
+      setNotes("");
+      setOpen(false); // Cierra la ventana emergente automáticamente
+      
+      // Forzar recarga rápida de la página para pintar el nuevo espacio en la tabla
+      window.location.reload();
+    } else {
+      alert("Hubo un problema en el servidor al guardar el espacio.");
+    }
+  } catch (error) {
+    console.error("Error de red:", error);
+    alert("No se pudo conectar con el servidor.");
+  }
+};
 
   const isPending = createSpace.isPending || updateSpace.isPending;
 

@@ -8,6 +8,8 @@ import path from "path";
 import fs from "fs";
 import https from "https";
 import http from "http";
+import { db } from "./db";
+import { spaces } from "@shared/schema";
 
 // ── Helper: download image from URL (follows redirects) ───────────────────────
 async function downloadImageFromUrl(imageUrl: string, destPath: string, maxRedirects = 8): Promise<void> {
@@ -85,14 +87,23 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
   });
 
   app.post(api.spaces.create.path, async (req, res) => {
-    try {
-      const input = api.spaces.create.input.parse(req.body);
-      res.status(201).json(await storage.createSpace(input));
-    } catch (err) {
-      if (err instanceof z.ZodError) return res.status(400).json({ message: err.errors[0].message });
-      res.status(500).json({ message: "Error interno" });
-    }
-  });
+  try {
+    const input = api.spaces.create.input.parse(req.body);
+    
+    // Inserción directa en SQLite para que el botón guarde al instante
+    const [newSpace] = await db.insert(spaces).values({
+      code: input.code,
+      name: input.name,
+      type: input.type || "habitacion",
+      notes: input.notes || ""
+    }).returning();
+
+    res.status(201).json(newSpace);
+  } catch (err) {
+    console.error("Error al crear espacio:", err);
+    res.status(500).json({ message: "Error interno al guardar en base de datos" });
+  }
+});
 
   app.put(api.spaces.update.path, async (req, res) => {
     try {
@@ -602,34 +613,34 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
 
   // ── Seed ──────────────────────────────────────────────────────────────────
   const existingSpaces = await storage.getSpaces();
-  if (existingSpaces.length === 0) {
-    const h101 = await storage.createSpace({ code: "101", name: "Habitación 101", type: "habitacion", notes: "" });
-    const h102 = await storage.createSpace({ code: "102", name: "Habitación 102", type: "habitacion", notes: "" });
-    const lobby = await storage.createSpace({ code: "LOBBY", name: "Lobby Principal", type: "lobby", notes: "" });
-    const cocina = await storage.createSpace({ code: "COCINA", name: "Cocina Central", type: "cocina", notes: "" });
-    const sub = await storage.createSpace({ code: "SUB-1", name: "Subestación 1", type: "subestacion", notes: "" });
+  // if (existingSpaces.length === 0) {
+  //   const h101 = await storage.createSpace({ code: "101", name: "Habitación 101", type: "habitacion", notes: "" });
+  //   const h102 = await storage.createSpace({ code: "102", name: "Habitación 102", type: "habitacion", notes: "" });
+  //   const lobby = await storage.createSpace({ code: "LOBBY", name: "Lobby Principal", type: "lobby", notes: "" });
+  //   const cocina = await storage.createSpace({ code: "COCINA", name: "Cocina Central", type: "cocina", notes: "" });
+  //   const sub = await storage.createSpace({ code: "SUB-1", name: "Subestación 1", type: "subestacion", notes: "" });
 
-    await storage.createSpaceItem({ spaceId: h101.id, name: "Aire acondicionado", status: "ok", notes: "" });
-    await storage.createSpaceItem({ spaceId: h101.id, name: "TV 55\"", status: "mantenimiento", notes: "Pantalla con líneas" });
-    await storage.createSpaceItem({ spaceId: h101.id, name: "Cama King", status: "ok", notes: "" });
-    await storage.createSpaceItem({ spaceId: h101.id, name: "Detector de humo", status: "ok", notes: "" });
-    await storage.createSpaceItem({ spaceId: h102.id, name: "Aire acondicionado", status: "ok", notes: "" });
-    await storage.createSpaceItem({ spaceId: h102.id, name: "Vidrio baño", status: "fuera_de_servicio", notes: "Roto" });
-    await storage.createSpaceItem({ spaceId: lobby.id, name: "Luces LED", status: "ok", notes: "" });
-    await storage.createSpaceItem({ spaceId: lobby.id, name: "Pintura paredes", status: "mantenimiento", notes: "Manchas" });
-    await storage.createSpaceItem({ spaceId: sub.id, name: "Transformador principal", status: "ok", notes: "" });
-    await storage.createSpaceItem({ spaceId: sub.id, name: "UPS respaldo", status: "ok", notes: "" });
+  //   await storage.createSpaceItem({ spaceId: h101.id, name: "Aire acondicionado", status: "ok", notes: "" });
+  //   await storage.createSpaceItem({ spaceId: h101.id, name: "TV 55\"", status: "mantenimiento", notes: "Pantalla con líneas" });
+  //   await storage.createSpaceItem({ spaceId: h101.id, name: "Cama King", status: "ok", notes: "" });
+  //   await storage.createSpaceItem({ spaceId: h101.id, name: "Detector de humo", status: "ok", notes: "" });
+  //   await storage.createSpaceItem({ spaceId: h102.id, name: "Aire acondicionado", status: "ok", notes: "" });
+  //   await storage.createSpaceItem({ spaceId: h102.id, name: "Vidrio baño", status: "fuera_de_servicio", notes: "Roto" });
+  //   await storage.createSpaceItem({ spaceId: lobby.id, name: "Luces LED", status: "ok", notes: "" });
+  //   await storage.createSpaceItem({ spaceId: lobby.id, name: "Pintura paredes", status: "mantenimiento", notes: "Manchas" });
+  //   await storage.createSpaceItem({ spaceId: sub.id, name: "Transformador principal", status: "ok", notes: "" });
+  //   await storage.createSpaceItem({ spaceId: sub.id, name: "UPS respaldo", status: "ok", notes: "" });
 
-    const u1 = await storage.createWaUser({ name: "Carlos Técnico", phone: "+573001234567", role: "tecnico", active: true });
-    const u2 = await storage.createWaUser({ name: "Ana Supervisora", phone: "+573009876543", role: "supervisor", active: true });
+  //   const u1 = await storage.createWaUser({ name: "Carlos Técnico", phone: "+573001234567", role: "tecnico", active: true });
+  //   const u2 = await storage.createWaUser({ name: "Ana Supervisora", phone: "+573009876543", role: "supervisor", active: true });
 
-    await storage.createTicket({ spaceId: h101.id, title: "TV con pantalla dañada", description: "Pantalla tiene líneas horizontales visibles", status: "pendiente", priority: "alta", assignedToId: u1.id, createdById: u2.id });
-    await storage.createTicket({ spaceId: h102.id, title: "Vidrio de baño roto", description: "Vidrio de mampara en baño está roto, riesgo de seguridad", status: "en_progreso", priority: "urgente", assignedToId: u1.id, createdById: u2.id });
-    await storage.createTicket({ spaceId: lobby.id, title: "Manchas en paredes lobby", description: "Manchas de humedad en pared norte del lobby", status: "pendiente", priority: "media", assignedToId: null, createdById: u2.id });
+  //   await storage.createTicket({ spaceId: h101.id, title: "TV con pantalla dañada", description: "Pantalla tiene líneas horizontales visibles", status: "pendiente", priority: "alta", assignedToId: u1.id, createdById: u2.id });
+  //   await storage.createTicket({ spaceId: h102.id, title: "Vidrio de baño roto", description: "Vidrio de mampara en baño está roto, riesgo de seguridad", status: "en_progreso", priority: "urgente", assignedToId: u1.id, createdById: u2.id });
+  //   await storage.createTicket({ spaceId: lobby.id, title: "Manchas en paredes lobby", description: "Manchas de humedad en pared norte del lobby", status: "pendiente", priority: "media", assignedToId: null, createdById: u2.id });
 
-    await storage.createMessage({ spaceCode: "101", content: "Habitación 101: TV tiene líneas en pantalla", sender: "Carlos Técnico", isMaintenanceUpdate: true });
-    await storage.createMessage({ spaceCode: "101", content: "Revisado, se necesita reemplazo del panel", sender: "Ana Supervisora", isMaintenanceUpdate: false });
-  }
+  //   await storage.createMessage({ spaceCode: "101", content: "Habitación 101: TV tiene líneas en pantalla", sender: "Carlos Técnico", isMaintenanceUpdate: true });
+  //   await storage.createMessage({ spaceCode: "101", content: "Revisado, se necesita reemplazo del panel", sender: "Ana Supervisora", isMaintenanceUpdate: false });
+  // }
 
-  return httpServer;
+  // return httpServer;
 }
