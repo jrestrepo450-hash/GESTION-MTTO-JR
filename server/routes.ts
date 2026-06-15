@@ -79,7 +79,7 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
   app.get(api.spaces.list.path, async (req, res) => {
     try {
       const allSpaces = await db.select().from(spaces);
-      res.json(allSpaces);
+      res.json(allSpaces || []);
     } catch (err) {
       console.error("Error al obtener espacios:", err);
       res.status(500).json({ message: "Error al obtener espacios de SQLite" });
@@ -108,10 +108,11 @@ export async function registerRoutes(httpServer: Server, app: Express): Promise<
         notes: input.notes || ""
       }).returning();
 
-      res.status(201).json(newSpace);
+      // Corregido: La respuesta ahora está dentro del bloque try donde vive newSpace
+      return res.status(201).json(newSpace);
     } catch (err) {
       console.error("Error al crear espacio:", err);
-      res.status(500).json({ message: "Error interno al guardar en SQLite" });
+      return res.status(500).json({ message: "Error interno al guardar en SQLite" });
     }
   });
 
