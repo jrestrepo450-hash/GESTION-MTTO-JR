@@ -10,7 +10,7 @@ import https from "https";
 import http from "http";
 import { db } from "./db";
 import { spaces } from "@shared/schema";
-
+import { eq } from "drizzle-orm";
 // ── Helper: download image from URL (follows redirects) ───────────────────────
 async function downloadImageFromUrl(imageUrl: string, destPath: string, maxRedirects = 8): Promise<void> {
   let currentUrl = imageUrl;
@@ -75,35 +75,47 @@ const upload = multer({
 
 export async function registerRoutes(httpServer: Server, app: Express): Promise<Server> {
 
-  // ── Spaces ────────────────────────────────────────────────────────────────
+  // --- Spaces
   app.get(api.spaces.list.path, async (req, res) => {
-    res.json(await storage.getSpaces());
+    try {
+      // Consulta directa a SQLite para traer todos los espacios a la pantalla
+      const allSpaces = await db.select().from(spaces);
+      res.json(allSpaces);
+    } catch (err) {
+      console.error("Error al obtener espacios:", err);
+      res.status(500).json({ message: "Error al obtener espacios de SQLite" });
+    }
   });
 
   app.get(api.spaces.get.path, async (req, res) => {
-    const s = await storage.getSpace(Number(req.params.id));
-    if (!s) return res.status(404).json({ message: "Espacio no encontrado" });
-    res.json(s);
+    try {
+      // Consulta directa a SQLite filtrando por el ID
+      const s = await db.select().from(spaces).where(eq(spaces.id, Number(req.params.id)));
+      if (s.length === 0) return res.status(404).json({ message: "Espacio no encontrado" });
+      res.json(s[0]);
+    } catch (err) {
+      console.error("Error al buscar espacio:", err);
+      res.status(500).json({ message: "Error al buscar espacio en SQLite" });
+    }
   });
 
   app.post(api.spaces.create.path, async (req, res) => {
-  try {
-    const input = api.spaces.create.input.parse(req.body);
-    
-    // Inserción directa en SQLite para que el botón guarde al instante
-    const [newSpace] = await db.insert(spaces).values({
-      code: input.code,
-      name: input.name,
-      type: input.type || "habitacion",
-      notes: input.notes || ""
-    }).returning();
+    try {
+      const input = api.spaces.create.input.parse(req.body);
+      
+      const [newSpace] = await db.insert(spaces).values({
+        code: input.code,
+        name: input.name,
+        type: input.type || "habitacion",
+        notes: input.notes || ""
+      }).returning();
 
-    res.status(201).json(newSpace);
-  } catch (err) {
-    console.error("Error al crear espacio:", err);
-    res.status(500).json({ message: "Error interno al guardar en base de datos" });
-  }
-});
+      res.status(201).json(newSpace);
+    } catch (err) {
+      console.error("Error al crear espacio:", err);
+      res.status(500).json({ message: "Error interno al guardar en SQLite" });
+    }
+  });
 
   app.put(api.spaces.update.path, async (req, res) => {
     try {
