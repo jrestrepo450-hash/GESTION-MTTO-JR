@@ -1,6 +1,9 @@
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
-import { setupVite, serveStatic, log } from "./vite";
+import { setupVite } from "./vite";
+import path from "path";
+import fs from "fs";
+import { createServer } from "http";
 
 const app = express();
 const httpServer = createServer(app);
@@ -83,11 +86,11 @@ app.use((req, res, next) => {
   // setting up all the other routes so the catch-all route
   // doesn't interfere with the other routes
   if (process.env.NODE_ENV === "production") {
-    serveStatic(app);
-  } else {
-    const { setupVite } = await import("./vite");
-    await setupVite(httpServer, app);
-  }
+  app.use(express.static("dist/public"));
+} else {
+  const { setupVite } = await import("./vite");
+  await setupVite(httpServer, app);
+}
 
   // ALWAYS serve the app on the port specified in the environment variable PORT
   // Other ports are firewalled. Default to 5000 if not specified.
