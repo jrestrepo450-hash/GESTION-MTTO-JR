@@ -1,21 +1,11 @@
-import { drizzle } from 'drizzle-orm/better-sqlite3';
-import Database from 'better-sqlite3';
-import * as schema from "@shared/schema";
+import { drizzle } from 'drizzle-orm/neon-http';
+import { neon } from '@neondatabase/serverless';
+import * as schema from "../shared/schema";
 
-const dbPath = 'C:/gestion-mtto.db';
-const sqlite = new Database(dbPath);
+if (!process.env.DATABASE_URL) {
+  throw new Error("DATABASE_URL must be a neon postgres connection string");
+}
 
-sqlite.exec(`
-  CREATE TABLE IF NOT EXISTS spaces (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    name TEXT NOT NULL,
-    code TEXT,
-    type TEXT,
-    status TEXT DEFAULT 'active',
-    description TEXT,
-    notes TEXT
-  );
-`);
-
-export const db = drizzle(sqlite, { schema });
-console.log("🔥 BASE DE DATOS CONFIGURADA EN C:/");
+const sql = neon(process.env.DATABASE_URL);
+export const db = drizzle(sql, { schema });
+console.log("🚀 ¡Conectado con éxito a la base de datos de Neon en Internet!");
