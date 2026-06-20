@@ -88,11 +88,11 @@ app.use((req, res, next) => {
   if (process.env.NODE_ENV === "production") {
     app.use(express.static("dist/public"));
     
-    app.get("/*", (req, res) => {
+    // 👇 CAMBIA LA LÍNEA PARA QUE QUEDE EXACTAMENTE ASÍ:
+    app.get(/^((?!\/api).)*$/, (req, res) => {
       res.sendFile(path.resolve("dist/public", "index.html"));
     });
   }
-
   // ALWAYS serve the app on the port specified in the environment variable PORT
   // Other ports are firewalled. Default to 5000 if not specified.
   // this serves both the API and the client.
