@@ -88,8 +88,8 @@ app.use((req, res, next) => {
   if (process.env.NODE_ENV === "production") {
     app.use(express.static("dist/public"));
     
-    // 👇 AGREGA ESTE BLOQUE JUSTO AQUÍ
-    app.get("*", (req, res) => {
+    // 👇 CAMBIA EL "*" POR "/*" ASÍ:
+    app.get("/*", (req, res) => {
       res.sendFile(path.resolve("dist/public", "index.html"));
     });
   }
