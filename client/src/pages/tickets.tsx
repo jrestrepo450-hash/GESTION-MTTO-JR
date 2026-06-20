@@ -76,7 +76,7 @@ export default function Tickets() {
       createdById: null,
     }, {
       onSuccess: () => {
-        queryClient.invalidateQueries({ queryKey: ["/api/tickets"] });
+        queryClient.invalidateQueries(["/api/tickets"]);
         setTicketOpen(false);
         setTitle("");
         setDescription("");
