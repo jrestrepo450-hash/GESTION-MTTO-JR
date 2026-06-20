@@ -88,7 +88,6 @@ app.use((req, res, next) => {
   if (process.env.NODE_ENV === "production") {
     app.use(express.static("dist/public"));
     
-    // 👇 CAMBIA EL "*" POR "/*" ASÍ:
     app.get("/*", (req, res) => {
       res.sendFile(path.resolve("dist/public", "index.html"));
     });
