@@ -21,6 +21,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
+import { useQueryClient } from "@tanstack/react-query";
 
 const STATUS_LABELS: Record<string, string> = { 
   pendiente: "Pendiente", 
@@ -51,6 +52,7 @@ export default function Tickets() {
   const updateTicket = useUpdateTicket();
   const deleteTicket = useDeleteTicket();
   const createTicket = useCreateTicket();
+  const queryClient = useQueryClient();
 
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
@@ -68,16 +70,18 @@ export default function Tickets() {
       priority: priority as any,
       status: "pendiente",
       spaceId: Number(spaceId),
-      imageUrl: imageFile ? URL.createObjectURL(imageFile) : null,
+      imageUrl: null,
       assignedToId: assignedToId ? Number(assignedToId) : null,
       createdById: null,
     }, {
       onSuccess: () => {
-        setTicketOpen(false);
-        setTitle(""); setDescription(""); setPriority("media"); setSpaceId(""); setAssignedToId("");
-      },
-    });
-  };
+          queryClient.invalidateQueries({ queryKey: ["/api/tickets"] });
+          setTicketOpen(false);
+          setTitle("");
+          setDescription("");
+          setPriority("media");
+          setSpaceId("");
+        },
 
   // Aseguramos que tickets sea una lista válida
   const listaTickets = Array.isArray(tickets) ? tickets : [];
