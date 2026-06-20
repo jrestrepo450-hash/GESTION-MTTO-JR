@@ -79,10 +79,13 @@ export default function Tickets() {
     });
   };
 
-  const filtered = tickets?.filter(t =>
-    t.title.toLowerCase().includes(search.toLowerCase()) ||
-    t.space?.name.toLowerCase().includes(search.toLowerCase()) ||
-    t.assignedTo?.name.toLowerCase().includes(search.toLowerCase())
+  // Aseguramos que tickets sea una lista válida
+  const listaTickets = Array.isArray(tickets) ? tickets : [];
+
+  const filtered = listaTickets.filter(t => 
+    t.title?.toLowerCase().includes(search.toLowerCase()) ||
+    t.space?.name?.toLowerCase().includes(search.toLowerCase()) ||
+    t.description?.toLowerCase().includes(search.toLowerCase())
   );
 
   return (

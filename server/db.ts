@@ -1,11 +1,12 @@
-import { drizzle } from 'drizzle-orm/neon-http';
-import { neon } from '@neondatabase/serverless';
+import { drizzle } from 'drizzle-orm/postgres-js';
+import postgres from 'postgres';
 import * as schema from "../shared/schema";
 
-if (!process.env.DATABASE_URL) {
-  throw new Error("DATABASE_URL must be a neon postgres connection string");
-}
+const databaseUrl = (process.env.DATABASE_URL || "").replace(/"/g, "") || 
+  "postgresql://neondb_owner:npg_RQgs9Y5IAtuj@ep-snowy-dream-acxmdu7g-pooler.sa-east-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require";
 
-const sql = neon(process.env.DATABASE_URL);
-export const db = drizzle(sql, { schema });
-console.log("🚀 ¡Conectado con éxito a la base de datos de Neon en Internet!");
+// Usamos postgres-js que acepta consultas tradicionales y plantillas por igual
+const queryClient = postgres(databaseUrl);
+export const db = drizzle(queryClient, { schema });
+
+console.log("🚀 ¡Conectado con éxito a Neon usando el conector universal!");

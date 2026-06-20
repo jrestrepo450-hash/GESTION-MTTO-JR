@@ -22,11 +22,13 @@ export function GlobalTicketCharts() {
     cantidad: s.count,
   }));
 
-  // Distribución por estado (con .toLowerCase() para que lea todo)
+  // Aseguramos que tickets sea una lista válida en este componente
+  const listaTickets = Array.isArray(tickets) ? tickets : [];
+
   const statusCounts = {
-    "Pendiente": tickets?.filter(t => t.status?.toLowerCase() === "pendiente" || t.status?.toLowerCase() === "pendiente").length ?? 0,
-    "En Progreso": tickets?.filter(t => t.status?.toLowerCase().replace(" ", "_") === "en_progreso").length ?? 0,
-    "Resuelto": tickets?.filter(t => t.status?.toLowerCase() === "resuelto").length ?? 0,
+    "Pendiente": listaTickets.filter(t => t.status?.toLowerCase() === "pendiente" || t.status?.toLowerCase() === "en_progreso").length ?? 0,
+    "En Progreso": listaTickets.filter(t => t.status?.toLowerCase() === "en_progreso").length ?? 0,
+    "Resuelto": listaTickets.filter(t => t.status?.toLowerCase() === "resuelto").length ?? 0,
   };
   const pieData = Object.entries(statusCounts)
     .filter(([, v]) => v > 0)
@@ -34,10 +36,10 @@ export function GlobalTicketCharts() {
 
   // Distribución por prioridad (con .toLowerCase() para asegurar el match)
   const priorityCounts = {
-    "Urgente": tickets?.filter(t => t.priority?.toLowerCase() === "urgente").length ?? 0,
-    "Alta": tickets?.filter(t => t.priority?.toLowerCase() === "alta").length ?? 0,
-    "Media": tickets?.filter(t => t.priority?.toLowerCase() === "media").length ?? 0,
-    "Baja": tickets?.filter(t => t.priority?.toLowerCase() === "baja").length ?? 0,
+    "Baja": listaTickets.filter(t => t.priority?.toLowerCase() === "baja").length ?? 0,
+    "Media": listaTickets.filter(t => t.priority?.toLowerCase() === "media").length ?? 0,
+    "Alta": listaTickets.filter(t => t.priority?.toLowerCase() === "alta").length ?? 0,
+    "Urgente": listaTickets.filter(t => t.priority?.toLowerCase() === "urgente").length ?? 0,
   };
   const priorityData = Object.entries(priorityCounts)
     .filter(([, v]) => v > 0)

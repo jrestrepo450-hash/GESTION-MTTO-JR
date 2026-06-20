@@ -14,9 +14,11 @@ export default function Dashboard() {
   const { data: tickets } = useTickets();
   const { data: waUsers } = useWaUsers();
 
-  const pendientes = tickets?.filter(t => t.status === "pendiente") || [];
-  const urgentes = tickets?.filter(t => t.priority === "urgente" && t.status !== "resuelto") || [];
-  const resueltos = tickets?.filter(t => t.status === "resuelto") || [];
+  const listaTickets = Array.isArray(tickets) ? tickets : [];
+
+const pendientes = listaTickets.filter(t => t.status === "pendiente");
+const urgentes = listaTickets.filter(t => t.priority === "urgente" && t.status !== "resuelto");
+const resueltos = listaTickets.filter(t => t.status === "resuelto");
 
   return (
     <div className="p-6 md:p-10 max-w-7xl mx-auto space-y-8">
@@ -82,7 +84,7 @@ export default function Dashboard() {
               <Button asChild variant="ghost" size="sm"><Link href="/pendientes">Ver todos</Link></Button>
             </div>
             <div className="space-y-3">
-              {tickets?.slice(0, 5).map(t => (
+              {listaTickets.slice(0, 5).map(t => (
                 <div key={t.id} className="flex items-center justify-between gap-3 p-3 rounded-xl bg-secondary/30">
                   <div className="min-w-0">
                     <p className="font-medium text-sm truncate">{t.title}</p>
