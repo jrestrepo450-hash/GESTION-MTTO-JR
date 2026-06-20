@@ -45,6 +45,7 @@ export default function Tickets() {
   const [search, setSearch] = useState("");
   const [ticketOpen, setTicketOpen] = useState(false);
   const [deletingId, setDeletingId] = useState<number | null>(null);
+  const queryClient = useQueryClient();
 
   const { data: tickets, isLoading } = useTickets(statusFilter !== "all" ? { status: statusFilter } : undefined);
   const { data: spaces } = useSpaces();
@@ -52,7 +53,6 @@ export default function Tickets() {
   const updateTicket = useUpdateTicket();
   const deleteTicket = useDeleteTicket();
   const createTicket = useCreateTicket();
-  const queryClient = useQueryClient();
 
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
@@ -61,9 +61,10 @@ export default function Tickets() {
   const [assignedToId, setAssignedToId] = useState<string>("");
   const [imageFile, setImageFile] = useState<File | null>(null);
 
-  const handleCreate = (e: React.FormEvent) => {
+  const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!title.trim() || !spaceId) return;
+
     createTicket.mutate({
       title,
       description,
@@ -75,13 +76,15 @@ export default function Tickets() {
       createdById: null,
     }, {
       onSuccess: () => {
-          queryClient.invalidateQueries({ queryKey: ["/api/tickets"] });
-          setTicketOpen(false);
-          setTitle("");
-          setDescription("");
-          setPriority("media");
-          setSpaceId("");
-        },
+        queryClient.invalidateQueries({ queryKey: ["/api/tickets"] });
+        setTicketOpen(false);
+        setTitle("");
+        setDescription("");
+        setPriority("media");
+        setSpaceId("");
+      }
+    });
+  };
 
   // Aseguramos que tickets sea una lista válida
   const listaTickets = Array.isArray(tickets) ? tickets : [];
