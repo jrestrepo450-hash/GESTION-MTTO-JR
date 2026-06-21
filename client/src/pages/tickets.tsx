@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react"; // 🛡️ Importamos useEffect
+import { useState, useEffect } from "react";
 import { Link } from "wouter";
 import { useTickets, useUpdateTicket, useDeleteTicket, useCreateTicket } from "@/hooks/use-tickets";
 import { useSpaces } from "@/hooks/use-spaces";
@@ -20,7 +20,7 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { format } from "date-fns";
+import { format, parseISO } from "date-fns"; // 🛡️ Importamos parseISO
 import { es } from "date-fns/locale";
 
 const STATUS_LABELS: Record<string, string> = { 
@@ -55,10 +55,8 @@ export default function Tickets() {
   const deleteTicket = useDeleteTicket();
   const createTicket = useCreateTicket();
 
-  // 🛡️ NUEVO: Estado espejo local para renderizado inmediato antivoladuras
   const [localTickets, setLocalTickets] = useState<any[]>([]);
 
-  // Sincronizar el estado local cada vez que la base de datos traiga data fresca
   useEffect(() => {
     if (tickets) {
       setLocalTickets(tickets);
@@ -71,6 +69,18 @@ export default function Tickets() {
   const [spaceId, setSpaceId] = useState<string>("");
   const [assignedToId, setAssignedToId] = useState<string>("");
   const [imageFile, setImageFile] = useState<File | null>(null);
+
+  // 🛡️ FUNCIÓN DE FORMATEO ULTRA SEGURO (Evita pantallas en blanco si la fecha es inválida)
+  const safeFormatDate = (dateString: any) => {
+    if (!dateString) return "";
+    try {
+      const date = typeof dateString === "string" ? parseISO(dateString) : new Date(dateString);
+      if (isNaN(date.getTime())) return "Reciente";
+      return format(date, "dd MMM yyyy", { locale: es });
+    } catch (e) {
+      return "Reciente";
+    }
+  };
 
   const handleCreate = (e: React.FormEvent) => {
     e.preventDefault();
@@ -97,7 +107,6 @@ export default function Tickets() {
     });
   };
 
-  // 🛡️ Procesar búsquedas y filtros sobre el estado espejo seguro
   const filtered = (localTickets || []).filter(t => {
     if (!t) return false;
     
@@ -256,14 +265,14 @@ export default function Tickets() {
                         </Link>
                       )}
                       {t.assignedTo && <span>Asignado: <strong>{t.assignedTo.name}</strong></span>}
-                      {t.createdAt && <span>{format(new Date(t.createdAt), "dd MMM yyyy", { locale: es })}</span>}
+                      {/* 🛡️ Uso de la función ultra segura */}
+                      {t.createdAt && <span>{safeFormatDate(t.createdAt)}</span>}
                     </div>
                   </div>
                   <div className="flex items-center gap-2 shrink-0">
                     <Select
                       value={statusKey}
                       onValueChange={val => {
-                        // 🔄 Cambio optimista inmediato en pantalla
                         setLocalTickets(prev => prev.map(item => item.id === t.id ? { ...item, status: val } : item));
                         updateTicket.mutate(
                           { id: t.id, status: val as any },
@@ -314,7 +323,6 @@ export default function Tickets() {
               className="bg-destructive text-destructive-foreground"
               onClick={() => { 
                 if (deletingId) {
-                  // 🔄 Eliminación optimista inmediata en pantalla
                   setLocalTickets(prev => prev.filter(item => item.id !== deletingId));
                   deleteTicket.mutate(deletingId, {
                     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["/api/tickets"] })
