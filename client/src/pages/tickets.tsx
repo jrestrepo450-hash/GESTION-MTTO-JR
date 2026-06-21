@@ -1,5 +1,4 @@
 import { useState, useEffect } from "react";
-import { Link } from "wouter";
 import { useTickets, useUpdateTicket, useDeleteTicket, useCreateTicket } from "@/hooks/use-tickets";
 import { useSpaces } from "@/hooks/use-spaces";
 import { useWaUsers } from "@/hooks/use-wa-users";
@@ -19,13 +18,6 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-
-const STATUS_LABELS: Record<string, string> = { 
-  pendiente: "Pendiente", 
-  Pendiente: "Pendiente", 
-  en_progreso: "En Progreso", 
-  resuelto: "Resuelto" 
-};
 
 const STATUS_COLORS: Record<string, string> = {
   pendiente: "border-amber-400 text-amber-600 bg-amber-50 dark:bg-amber-900/20",
@@ -47,7 +39,7 @@ export default function Tickets() {
   const [ticketOpen, setTicketOpen] = useState(false);
   const [deletingId, setDeletingId] = useState<number | null>(null);
 
-  // Hooks globales de obtención de datos
+  // Consumo directo de Hooks
   const { data: tickets, isLoading } = useTickets(); 
   const { data: spaces } = useSpaces();
   const { data: waUsers } = useWaUsers();
@@ -64,14 +56,13 @@ export default function Tickets() {
   const [spaceId, setSpaceId] = useState<string>("");
   const [assignedToId, setAssignedToId] = useState<string>("");
 
-  // Sincronización robusta con la caché del servidor
   useEffect(() => {
     if (tickets && Array.isArray(tickets)) {
       setLocalTickets(tickets);
     }
   }, [tickets]);
 
-  // Formateador nativo ultra-seguro libre de librerías externas propensas a fallos
+  // Formateador nativo ultra simple
   const formatSafeDate = (rawDate: any) => {
     if (!rawDate) return "Reciente";
     try {
@@ -100,7 +91,6 @@ export default function Tickets() {
       createdById: null,
     }, {
       onSuccess: () => {
-        // Forzamos el refresco completo de la lista general en React Query
         queryClient.invalidateQueries({ queryKey: ["/api/tickets"] });
         setTicketOpen(false);
         setTitle(""); setDescription(""); setPriority("media"); setSpaceId(""); setAssignedToId("");
@@ -108,8 +98,8 @@ export default function Tickets() {
     });
   };
 
-  // Procesamiento seguro de filtros con salvaguardas para cada string
-  const filtered = localTickets.filter(t => {
+  // Filtrado 100% tolerante a fallos de datos nulos o undefined
+  const filtered = (localTickets || []).filter(t => {
     if (!t) return false;
     
     if (statusFilter !== "all") {
@@ -117,16 +107,14 @@ export default function Tickets() {
       if (currentStatus !== statusFilter.toLowerCase()) return false;
     }
 
-    // Resolver nombres de relaciones de manera segura incluso si el backend las envía vacías
-    const ticketSpaceName = t.space?.name || spaces?.find(s => s.id === t.spaceId)?.name || "";
-    const ticketAssignedName = t.assignedTo?.name || waUsers?.find(u => u.id === t.assignedToId)?.name || "";
+    const spaceName = t.space?.name || "";
+    const techName = t.assignedTo?.name || "";
 
-    const matchesSearch = 
+    return (
       String(t.title || "").toLowerCase().includes(search.toLowerCase()) ||
-      String(ticketSpaceName).toLowerCase().includes(search.toLowerCase()) ||
-      String(ticketAssignedName).toLowerCase().includes(search.toLowerCase());
-      
-    return matchesSearch;
+      String(spaceName).toLowerCase().includes(search.toLowerCase()) ||
+      String(techName).toLowerCase().includes(search.toLowerCase())
+    );
   });
 
   return (
@@ -150,7 +138,7 @@ export default function Tickets() {
                 <Select value={spaceId || undefined} onValueChange={setSpaceId}>
                   <SelectTrigger><SelectValue placeholder="Seleccionar espacio" /></SelectTrigger>
                   <SelectContent>
-                    {spaces?.map(s => (
+                    {Array.isArray(spaces) && spaces.map(s => (
                       <SelectItem key={s.id} value={String(s.id)}>{s.name} ({s.code})</SelectItem>
                     ))}
                   </SelectContent>
@@ -191,7 +179,7 @@ export default function Tickets() {
                     <SelectTrigger><SelectValue placeholder="Sin asignar" /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="none">Sin asignar</SelectItem>
-                      {waUsers?.map(u => (
+                      {Array.isArray(waUsers) && waUsers.map(u => (
                         <SelectItem key={u.id} value={String(u.id)}>{u.name}</SelectItem>
                       ))}
                     </SelectContent>
@@ -230,12 +218,10 @@ export default function Tickets() {
         <div className="text-center text-muted-foreground py-10">Cargando...</div>
       ) : (
         <div className="space-y-3">
-          {filtered?.map(t => {
+          {filtered.map(t => {
             const statusKey = t.status || "pendiente";
-            
-            // 🛡️ Mecanismo de defensa de relaciones en cascada (Evita pantallas en blanco si la propiedad anidada no viene)
-            const resolvedSpaceName = t.space?.name || spaces?.find(s => s.id === t.spaceId)?.name || "Espacio N/A";
-            const resolvedAssignedUser = t.assignedTo?.name || waUsers?.find(u => u.id === t.assignedToId)?.name || null;
+            const currentSpaceName = t.space?.name || "Espacio asignado";
+            const currentTechName = t.assignedTo?.name || null;
 
             return (
               <Card key={t.id} className="border border-border/50 shadow-sm">
@@ -252,10 +238,10 @@ export default function Tickets() {
                     )}
                     <div className="flex items-center gap-3 flex-wrap text-xs text-muted-foreground">
                       <span className="flex items-center gap-1">
-                        <ChevronRight className="h-3 w-3" /> {resolvedSpaceName}
+                        <ChevronRight className="h-3 w-3" /> {currentSpaceName}
                       </span>
-                      {resolvedAssignedUser && (
-                        <span>Asignado: <strong>{resolvedAssignedUser}</strong></span>
+                      {currentTechName && (
+                        <span>Asignado: <strong>{currentTechName}</strong></span>
                       )}
                       <span>{formatSafeDate(t.createdAt)}</span>
                     </div>
@@ -264,16 +250,8 @@ export default function Tickets() {
                     <Select
                       value={statusKey}
                       onValueChange={val => {
-                        // Actualización local inmediata preservando la consistencia
                         setLocalTickets(prev => prev.map(item => item.id === t.id ? { ...item, status: val } : item));
-                        updateTicket.mutate(
-                          { id: t.id, status: val as any },
-                          {
-                            onSuccess: () => {
-                              queryClient.invalidateQueries({ queryKey: ["/api/tickets"] });
-                            }
-                          }
-                        );
+                        updateTicket.mutate({ id: t.id, status: val as any });
                       }}
                     >
                       <SelectTrigger className={`h-8 w-36 text-xs border ${STATUS_COLORS[statusKey] || "border-amber-400"}`}>
@@ -297,7 +275,7 @@ export default function Tickets() {
               </Card>
             );
           })}
-          {filtered?.length === 0 && (
+          {filtered.length === 0 && (
             <div className="text-center py-16 text-muted-foreground">
               <ClipboardList className="h-10 w-10 mx-auto mb-3 opacity-20" />
               <p>No hay pendientes</p>
@@ -319,11 +297,7 @@ export default function Tickets() {
               onClick={() => { 
                 if (deletingId) {
                   setLocalTickets(prev => prev.filter(item => item.id !== deletingId));
-                  deleteTicket.mutate(deletingId, {
-                    onSuccess: () => {
-                      queryClient.invalidateQueries({ queryKey: ["/api/tickets"] });
-                    }
-                  });
+                  deleteTicket.mutate(deletingId);
                 } 
                 setDeletingId(null); 
               }}
