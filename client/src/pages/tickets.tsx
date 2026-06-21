@@ -21,7 +21,6 @@ import {
 } from "@/components/ui/alert-dialog";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
-import { useQueryClient } from "@tanstack/react-query";
 
 const STATUS_LABELS: Record<string, string> = { 
   pendiente: "Pendiente", 
@@ -45,7 +44,6 @@ export default function Tickets() {
   const [search, setSearch] = useState("");
   const [ticketOpen, setTicketOpen] = useState(false);
   const [deletingId, setDeletingId] = useState<number | null>(null);
-  const queryClient = useQueryClient();
 
   const { data: tickets, isLoading } = useTickets(statusFilter !== "all" ? { status: statusFilter } : undefined);
   const { data: spaces } = useSpaces();
@@ -61,38 +59,30 @@ export default function Tickets() {
   const [assignedToId, setAssignedToId] = useState<string>("");
   const [imageFile, setImageFile] = useState<File | null>(null);
 
-  const handleCreate = async (e: React.FormEvent) => {
+  const handleCreate = (e: React.FormEvent) => {
     e.preventDefault();
     if (!title.trim() || !spaceId) return;
-
     createTicket.mutate({
       title,
       description,
       priority: priority as any,
       status: "pendiente",
       spaceId: Number(spaceId),
-      imageUrl: null,
+      imageUrl: imageFile ? URL.createObjectURL(imageFile) : null,
       assignedToId: assignedToId ? Number(assignedToId) : null,
       createdById: null,
     }, {
       onSuccess: () => {
-        queryClient.invalidateQueries(["/api/tickets"]);
         setTicketOpen(false);
-        setTitle("");
-        setDescription("");
-        setPriority("media");
-        setSpaceId("");
-      }
+        setTitle(""); setDescription(""); setPriority("media"); setSpaceId(""); setAssignedToId("");
+      },
     });
   };
 
-  // Aseguramos que tickets sea una lista válida
-  const listaTickets = Array.isArray(tickets) ? tickets : [];
-
-  const filtered = listaTickets.filter(t => 
-    t.title?.toLowerCase().includes(search.toLowerCase()) ||
-    t.space?.name?.toLowerCase().includes(search.toLowerCase()) ||
-    t.description?.toLowerCase().includes(search.toLowerCase())
+  const filtered = tickets?.filter(t =>
+    t.title.toLowerCase().includes(search.toLowerCase()) ||
+    t.space?.name.toLowerCase().includes(search.toLowerCase()) ||
+    t.assignedTo?.name.toLowerCase().includes(search.toLowerCase())
   );
 
   return (
@@ -291,3 +281,4 @@ export default function Tickets() {
     </div>
   );
 }
+
