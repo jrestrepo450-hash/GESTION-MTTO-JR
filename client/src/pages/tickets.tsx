@@ -3,7 +3,7 @@ import { useTickets, useUpdateTicket, useDeleteTicket, useCreateTicket } from "@
 import { useSpaces } from "@/hooks/use-spaces";
 import { useWaUsers } from "@/hooks/use-wa-users";
 import { useQueryClient } from "@tanstack/react-query";
-import { ClipboardList, Plus, Trash2, ChevronRight, Filter } from "lucide-react";
+import { ClipboardList, Plus, Trash2, ChevronRight, Filter, User } from "lucide-react"; // Añadido User
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -216,11 +216,11 @@ export default function Tickets() {
       ) : (
         <div className="space-y-3">
           {filtered.map(t => {
-            // 🛡️ FORMATEO ESTRICTO ANTIVIRUS: Normalizamos los strings de control gráfico a minúsculas seguras
+            // 🛡️ Normalizamos strings para evitar desajustes con las llaves CSS de Tailwind
             const statusKey = String(t.status || "pendiente").toLowerCase();
             const priorityKey = String(t.priority || "media").toLowerCase();
             
-            // 🛡️ Mapeo seguro de relaciones textuales
+            // 🛡️ Relaciones tolerantes a fallos (Evitan pantallas en blanco)
             const currentSpaceName = t.space?.name || "Espacio asignado";
             const currentTechName = t.assignedTo?.name || null;
 
@@ -230,7 +230,6 @@ export default function Tickets() {
                   <div className="flex-1 min-w-0">
                     <div className="flex items-start gap-2 flex-wrap mb-1.5">
                       <span className="font-semibold text-sm">{t.title}</span>
-                      {/* 🛡️ Evita 'undefined' en los objetos de colores de Tailwind */}
                       <span className={`text-xs ${PRIORITY_COLORS[priorityKey] || "text-slate-500"}`}>
                         [{priorityKey.toUpperCase()}]
                       </span>
@@ -243,7 +242,11 @@ export default function Tickets() {
                         <ChevronRight className="h-3 w-3" /> {currentSpaceName}
                       </span>
                       {currentTechName && (
-                        <span>Asignado: <strong>{currentTechName}</strong></span>
+                        // 🛡️ Fallback gráfico nativo: Icono local en lugar de llamadas 404 a Gravatar externa
+                        <span className="flex items-center gap-1">
+                          <User className="h-3 w-3 text-muted-foreground inline" />
+                          Asignado: <strong>{currentTechName}</strong>
+                        </span>
                       )}
                       <span>{formatSafeDate(t.createdAt)}</span>
                     </div>
@@ -257,7 +260,6 @@ export default function Tickets() {
                         updateTicket.mutate({ id: t.id, status: cleanVal as any });
                       }}
                     >
-                      {/* 🛡️ Evita bordes CSS rotos (border undefined) al cambiar de estado */}
                       <SelectTrigger className={`h-8 w-36 text-xs border ${STATUS_COLORS[statusKey] || "border-amber-400"}`}>
                         <SelectValue />
                       </SelectTrigger>
@@ -314,4 +316,3 @@ export default function Tickets() {
     </div>
   );
 }
-
