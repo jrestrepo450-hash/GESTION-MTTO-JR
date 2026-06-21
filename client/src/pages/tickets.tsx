@@ -216,14 +216,13 @@ export default function Tickets() {
       ) : (
         <div className="space-y-3">
           {filtered.map(t => {
-            const statusKey = t.status || "pendiente";
+            // 🛡️ FORMATEO ESTRICTO ANTIVIRUS: Normalizamos los strings de control gráfico a minúsculas seguras
+            const statusKey = String(t.status || "pendiente").toLowerCase();
+            const priorityKey = String(t.priority || "media").toLowerCase();
             
-            // 🛡️ Blindaje total de relaciones en el renderizado
+            // 🛡️ Mapeo seguro de relaciones textuales
             const currentSpaceName = t.space?.name || "Espacio asignado";
             const currentTechName = t.assignedTo?.name || null;
-            
-            // 🛡️ Normalización estricta de prioridad (Previene error 'undefined' de claves css)
-            const priorityKey = String(t.priority || "media").toLowerCase();
 
             return (
               <Card key={t.id} className="border border-border/50 shadow-sm">
@@ -231,6 +230,7 @@ export default function Tickets() {
                   <div className="flex-1 min-w-0">
                     <div className="flex items-start gap-2 flex-wrap mb-1.5">
                       <span className="font-semibold text-sm">{t.title}</span>
+                      {/* 🛡️ Evita 'undefined' en los objetos de colores de Tailwind */}
                       <span className={`text-xs ${PRIORITY_COLORS[priorityKey] || "text-slate-500"}`}>
                         [{priorityKey.toUpperCase()}]
                       </span>
@@ -252,10 +252,12 @@ export default function Tickets() {
                     <Select
                       value={statusKey}
                       onValueChange={val => {
-                        setLocalTickets(prev => prev.map(item => item.id === t.id ? { ...item, status: val } : item));
-                        updateTicket.mutate({ id: t.id, status: val as any });
+                        const cleanVal = String(val).toLowerCase();
+                        setLocalTickets(prev => prev.map(item => item.id === t.id ? { ...item, status: cleanVal } : item));
+                        updateTicket.mutate({ id: t.id, status: cleanVal as any });
                       }}
                     >
+                      {/* 🛡️ Evita bordes CSS rotos (border undefined) al cambiar de estado */}
                       <SelectTrigger className={`h-8 w-36 text-xs border ${STATUS_COLORS[statusKey] || "border-amber-400"}`}>
                         <SelectValue />
                       </SelectTrigger>
