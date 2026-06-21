@@ -6,7 +6,6 @@ import { useWaUsers } from "@/hooks/use-wa-users";
 import { useQueryClient } from "@tanstack/react-query";
 import { ClipboardList, Plus, Trash2, ChevronRight, Filter } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -20,8 +19,6 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { format, parseISO } from "date-fns"; // 🛡️ Importamos parseISO
-import { es } from "date-fns/locale";
 
 const STATUS_LABELS: Record<string, string> = { 
   pendiente: "Pendiente", 
@@ -32,13 +29,15 @@ const STATUS_LABELS: Record<string, string> = {
 
 const STATUS_COLORS: Record<string, string> = {
   pendiente: "border-amber-400 text-amber-600 bg-amber-50 dark:bg-amber-900/20",
-  Pendiente: "border-amber-400 text-amber-600 bg-amber-50 dark:bg-amber-900/20", 
   en_progreso: "border-blue-400 text-blue-600 bg-blue-50 dark:bg-blue-900/20",
   resuelto: "border-green-400 text-green-600 bg-green-50 dark:bg-green-900/20"
 };
 
 const PRIORITY_COLORS: Record<string, string> = {
-  baja: "text-slate-500", media: "text-blue-500", alta: "text-amber-500", urgente: "text-red-500 font-bold",
+  baja: "text-slate-500", 
+  media: "text-blue-500", 
+  alta: "text-amber-500", 
+  urgente: "text-red-500 font-bold",
 };
 
 export default function Tickets() {
@@ -48,36 +47,38 @@ export default function Tickets() {
   const [ticketOpen, setTicketOpen] = useState(false);
   const [deletingId, setDeletingId] = useState<number | null>(null);
 
+  // Hooks globales de obtención de datos
   const { data: tickets, isLoading } = useTickets(); 
   const { data: spaces } = useSpaces();
   const { data: waUsers } = useWaUsers();
+  
   const updateTicket = useUpdateTicket();
   const deleteTicket = useDeleteTicket();
   const createTicket = useCreateTicket();
 
   const [localTickets, setLocalTickets] = useState<any[]>([]);
 
-  useEffect(() => {
-    if (tickets) {
-      setLocalTickets(tickets);
-    }
-  }, [tickets]);
-
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [priority, setPriority] = useState("media");
   const [spaceId, setSpaceId] = useState<string>("");
   const [assignedToId, setAssignedToId] = useState<string>("");
-  const [imageFile, setImageFile] = useState<File | null>(null);
 
-  // 🛡️ FUNCIÓN DE FORMATEO ULTRA SEGURO (Evita pantallas en blanco si la fecha es inválida)
-  const safeFormatDate = (dateString: any) => {
-    if (!dateString) return "";
+  // Sincronización robusta con la caché del servidor
+  useEffect(() => {
+    if (tickets && Array.isArray(tickets)) {
+      setLocalTickets(tickets);
+    }
+  }, [tickets]);
+
+  // Formateador nativo ultra-seguro libre de librerías externas propensas a fallos
+  const formatSafeDate = (rawDate: any) => {
+    if (!rawDate) return "Reciente";
     try {
-      const date = typeof dateString === "string" ? parseISO(dateString) : new Date(dateString);
-      if (isNaN(date.getTime())) return "Reciente";
-      return format(date, "dd MMM yyyy", { locale: es });
-    } catch (e) {
+      const d = new Date(rawDate);
+      if (isNaN(d.getTime())) return "Reciente";
+      return d.toLocaleDateString("es-ES", { day: "2-digit", month: "short", year: "numeric" });
+    } catch {
       return "Reciente";
     }
   };
@@ -90,7 +91,7 @@ export default function Tickets() {
 
     createTicket.mutate({
       title,
-      description,
+      description: description || "",
       priority: priority as any,
       status: "pendiente",
       spaceId: Number(spaceId),
@@ -99,26 +100,31 @@ export default function Tickets() {
       createdById: null,
     }, {
       onSuccess: () => {
+        // Forzamos el refresco completo de la lista general en React Query
         queryClient.invalidateQueries({ queryKey: ["/api/tickets"] });
         setTicketOpen(false);
         setTitle(""); setDescription(""); setPriority("media"); setSpaceId(""); setAssignedToId("");
-        setImageFile(null);
       },
     });
   };
 
-  const filtered = (localTickets || []).filter(t => {
+  // Procesamiento seguro de filtros con salvaguardas para cada string
+  const filtered = localTickets.filter(t => {
     if (!t) return false;
     
     if (statusFilter !== "all") {
-      const currentStatus = (t.status || "").toLowerCase();
+      const currentStatus = String(t.status || "").toLowerCase();
       if (currentStatus !== statusFilter.toLowerCase()) return false;
     }
 
+    // Resolver nombres de relaciones de manera segura incluso si el backend las envía vacías
+    const ticketSpaceName = t.space?.name || spaces?.find(s => s.id === t.spaceId)?.name || "";
+    const ticketAssignedName = t.assignedTo?.name || waUsers?.find(u => u.id === t.assignedToId)?.name || "";
+
     const matchesSearch = 
-      (t.title || "").toLowerCase().includes(search.toLowerCase()) ||
-      (t.space?.name || "").toLowerCase().includes(search.toLowerCase()) ||
-      (t.assignedTo?.name || "").toLowerCase().includes(search.toLowerCase());
+      String(t.title || "").toLowerCase().includes(search.toLowerCase()) ||
+      String(ticketSpaceName).toLowerCase().includes(search.toLowerCase()) ||
+      String(ticketAssignedName).toLowerCase().includes(search.toLowerCase());
       
     return matchesSearch;
   });
@@ -134,7 +140,7 @@ export default function Tickets() {
         </div>
         <Dialog open={ticketOpen} onOpenChange={setTicketOpen}>
           <DialogTrigger asChild>
-            <Button data-testid="button-new-ticket"><Plus className="mr-2 h-4 w-4" />Nuevo pendiente</Button>
+            <Button><Plus className="mr-2 h-4 w-4" />Nuevo pendiente</Button>
           </DialogTrigger>
           <DialogContent>
             <DialogHeader><DialogTitle>Nuevo pendiente</DialogTitle></DialogHeader>
@@ -142,7 +148,7 @@ export default function Tickets() {
               <div>
                 <label className="text-sm font-medium block mb-1">Espacio *</label>
                 <Select value={spaceId || undefined} onValueChange={setSpaceId}>
-                  <SelectTrigger data-testid="select-space"><SelectValue placeholder="Seleccionar espacio" /></SelectTrigger>
+                  <SelectTrigger><SelectValue placeholder="Seleccionar espacio" /></SelectTrigger>
                   <SelectContent>
                     {spaces?.map(s => (
                       <SelectItem key={s.id} value={String(s.id)}>{s.name} ({s.code})</SelectItem>
@@ -156,7 +162,6 @@ export default function Tickets() {
                   placeholder="Describe el problema brevemente"
                   value={title}
                   onChange={e => setTitle(e.target.value)}
-                  data-testid="input-ticket-title"
                 />
               </div>
               <div>
@@ -193,23 +198,6 @@ export default function Tickets() {
                   </Select>
                 </div>
               </div>
-              <div className="space-y-2">
-                <label className="text-sm font-medium block">Evidencia Fotográfica</label>
-                <input 
-                  type="file" 
-                  accept="image/*" 
-                  capture="environment"
-                  onChange={(e) => {
-                    if (e.target.files && e.target.files[0]) {
-                      setImageFile(e.target.files[0]);
-                    }
-                  }}
-                  className="block w-full text-sm text-muted-foreground file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-primary file:text-primary-foreground hover:file:opacity-90"
-                />
-                {imageFile && (
-                  <p className="text-xs text-green-500">✓ Foto cargada con éxito</p>
-                )}
-              </div>
               <Button type="submit" className="w-full" disabled={createTicket.isPending || !title || !spaceId}>
                 {createTicket.isPending ? "Creando..." : "Crear pendiente"}
               </Button>
@@ -218,7 +206,6 @@ export default function Tickets() {
         </Dialog>
       </div>
 
-      {/* Filters */}
       <div className="flex flex-col sm:flex-row gap-3 mb-6">
         <Input
           placeholder="Buscar por título, espacio o asignado..."
@@ -245,6 +232,11 @@ export default function Tickets() {
         <div className="space-y-3">
           {filtered?.map(t => {
             const statusKey = t.status || "pendiente";
+            
+            // 🛡️ Mecanismo de defensa de relaciones en cascada (Evita pantallas en blanco si la propiedad anidada no viene)
+            const resolvedSpaceName = t.space?.name || spaces?.find(s => s.id === t.spaceId)?.name || "Espacio N/A";
+            const resolvedAssignedUser = t.assignedTo?.name || waUsers?.find(u => u.id === t.assignedToId)?.name || null;
+
             return (
               <Card key={t.id} className="border border-border/50 shadow-sm">
                 <CardContent className="p-4 flex items-start gap-4">
@@ -259,28 +251,32 @@ export default function Tickets() {
                       <p className="text-xs text-muted-foreground mb-2 leading-relaxed">{t.description}</p>
                     )}
                     <div className="flex items-center gap-3 flex-wrap text-xs text-muted-foreground">
-                      {t.space && (
-                        <Link href={`/spaces/${t.space.id}`} className="flex items-center gap-1 hover:text-primary transition-colors">
-                          <ChevronRight className="h-3 w-3" /> {t.space.name}
-                        </Link>
+                      <span className="flex items-center gap-1">
+                        <ChevronRight className="h-3 w-3" /> {resolvedSpaceName}
+                      </span>
+                      {resolvedAssignedUser && (
+                        <span>Asignado: <strong>{resolvedAssignedUser}</strong></span>
                       )}
-                      {t.assignedTo && <span>Asignado: <strong>{t.assignedTo.name}</strong></span>}
-                      {/* 🛡️ Uso de la función ultra segura */}
-                      {t.createdAt && <span>{safeFormatDate(t.createdAt)}</span>}
+                      <span>{formatSafeDate(t.createdAt)}</span>
                     </div>
                   </div>
                   <div className="flex items-center gap-2 shrink-0">
                     <Select
                       value={statusKey}
                       onValueChange={val => {
+                        // Actualización local inmediata preservando la consistencia
                         setLocalTickets(prev => prev.map(item => item.id === t.id ? { ...item, status: val } : item));
                         updateTicket.mutate(
                           { id: t.id, status: val as any },
-                          { onSuccess: () => queryClient.invalidateQueries({ queryKey: ["/api/tickets"] }) }
+                          {
+                            onSuccess: () => {
+                              queryClient.invalidateQueries({ queryKey: ["/api/tickets"] });
+                            }
+                          }
                         );
                       }}
                     >
-                      <SelectTrigger className={`h-8 w-36 text-xs border ${STATUS_COLORS[statusKey] || STATUS_COLORS["pendiente"]}`}>
+                      <SelectTrigger className={`h-8 w-36 text-xs border ${STATUS_COLORS[statusKey] || "border-amber-400"}`}>
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
@@ -293,7 +289,6 @@ export default function Tickets() {
                       variant="ghost" size="icon"
                       className="h-8 w-8 text-destructive"
                       onClick={() => setDeletingId(t.id)}
-                      data-testid={`button-delete-ticket-${t.id}`}
                     >
                       <Trash2 className="h-3.5 w-3.5" />
                     </Button>
@@ -305,7 +300,7 @@ export default function Tickets() {
           {filtered?.length === 0 && (
             <div className="text-center py-16 text-muted-foreground">
               <ClipboardList className="h-10 w-10 mx-auto mb-3 opacity-20" />
-              <p>No hay pendientes {statusFilter !== "all" ? `con estado "${STATUS_LABELS[statusFilter] || statusFilter}"` : ""}</p>
+              <p>No hay pendientes</p>
             </div>
           )}
         </div>
@@ -325,7 +320,9 @@ export default function Tickets() {
                 if (deletingId) {
                   setLocalTickets(prev => prev.filter(item => item.id !== deletingId));
                   deleteTicket.mutate(deletingId, {
-                    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["/api/tickets"] })
+                    onSuccess: () => {
+                      queryClient.invalidateQueries({ queryKey: ["/api/tickets"] });
+                    }
                   });
                 } 
                 setDeletingId(null); 
