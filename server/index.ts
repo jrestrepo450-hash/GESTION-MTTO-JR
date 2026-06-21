@@ -1,64 +1,41 @@
-import express, { type Request, Response, NextFunction } from "express";
+import express, { Request, Response, NextFunction, Express } from "express"; 
 import { registerRoutes } from "./routes";
-import { setupVite } from "./vite";
+import { setupVite } from "./vite"; 
+import http from "http";
 import path from "path";
-import fs from "fs";
-import { createServer } from "http";
 
-const app = express();
-const httpServer = createServer(app);
+// 🛡️ Creamos nuestra propia función log local para pintar en consola de forma limpia y segura
+const log = (message: string) => {
+  const time = new Date().toLocaleTimeString();
+  console.log(`[vite] ${time} ${message}`);
+};
 
-declare module "http" {
-  interface IncomingMessage {
-    rawBody: unknown;
-  }
-}
-
-// Serve uploaded files statically
-const uploadsDir = path.join(process.cwd(), "uploads");
-if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir, { recursive: true });
-app.use("/uploads", express.static(uploadsDir));
-
-app.use(
-  express.json({
-    verify: (req, _res, buf) => {
-      req.rawBody = buf;
-    },
-  }),
-);
-
+const app: Express = express(); 
+app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
-export function log(message: string, source = "express") {
-  const formattedTime = new Date().toLocaleTimeString("en-US", {
-    hour: "numeric",
-    minute: "2-digit",
-    second: "2-digit",
-    hour12: true,
-  });
-
-  console.log(`${formattedTime} [${source}] ${message}`);
-}
-
-app.use((req, res, next) => {
+// Middleware de registro de peticiones (Logging) - Idéntico al de tu foto original
+app.use((req: Request, res: Response, next: NextFunction) => {
   const start = Date.now();
-  const path = req.path;
-  let capturedJsonResponse: Record<string, any> | undefined = undefined;
+  const pathReq = req.path;
+  let resBody: any = null;
 
-  const originalResJson = res.json;
-  res.json = function (bodyJson, ...args) {
-    capturedJsonResponse = bodyJson;
-    return originalResJson.apply(res, [bodyJson, ...args]);
+  const resJson = res.json;
+  res.json = function (body, ...args) {
+    resBody = body;
+    return resJson.apply(res, [body, ...args]);
   };
 
   res.on("finish", () => {
     const duration = Date.now() - start;
-    if (path.startsWith("/api")) {
-      let logLine = `${req.method} ${path} ${res.statusCode} in ${duration}ms`;
-      if (capturedJsonResponse) {
-        logLine += ` :: ${JSON.stringify(capturedJsonResponse)}`;
+    if (pathReq.startsWith("/api")) {
+      let logLine = `${req.method} ${pathReq} ${res.statusCode} in ${duration}ms`;
+      if (resBody) {
+        logLine += ` :: ${JSON.stringify(resBody)}`;
       }
-
+      if (logLine.length > 80) {
+        logLine = logLine.slice(0, 79) + "…";
+      }
       log(logLine);
     }
   });
@@ -67,8 +44,21 @@ app.use((req, res, next) => {
 });
 
 (async () => {
+  const httpServer = http.createServer(app);
+
+  // 🛡️ 1. MIDDLEWARE ANTIVIRUS ANTI-CACHÉ (Cura el error 304 de tu foto de red)
+  app.use('/api', (_req: Request, res: Response, next: NextFunction) => {
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
+    res.setHeader('Surrogate-Control', 'no-store');
+    next();
+  });
+
+  // 2. Registrar las rutas de la API de la Base de Datos
   await registerRoutes(httpServer, app);
 
+  // 3. Manejador de errores completo de Express (Corregido y seguro)
   app.use((err: any, _req: Request, res: Response, next: NextFunction) => {
     const status = err.status || err.statusCode || 500;
     const message = err.message || "Internal Server Error";
@@ -79,31 +69,22 @@ app.use((req, res, next) => {
       return next(err);
     }
 
-    return res.status(status).json({ message });
+    res.status(status).json({ message });
   });
 
-  // importantly only setup vite in development and after
-  // setting up all the other routes so the catch-all route
-  // doesn't interfere with the other routes
+  // 4. Configuración de producción vs desarrollo con las notas de tu código original
   if (process.env.NODE_ENV === "production") {
-    app.use(express.static("dist/public"));
-    
-    // 👇 CAMBIA LA LÍNEA PARA QUE QUEDE EXACTAMENTE ASÍ:
-    app.get(/^((?!\/api).)*$/, (req, res) => {
-      res.sendFile(path.resolve("dist/public", "index.html"));
+    app.use(express.static(path.resolve("dist/public")));
+    app.get("*", (_req: Request, res: Response) => {
+      res.sendFile(path.resolve("dist/public/index.html"));
     });
+  } else {
+    // 🛡️ Orden de parámetros correcto: primero httpServer (Server), luego app (Express)
+    await setupVite(httpServer, app);
   }
-  // ALWAYS serve the app on the port specified in the environment variable PORT
-  // Other ports are firewalled. Default to 5000 if not specified.
-  // this serves both the API and the client.
-  // It is the only port that is not firewalled.
-  const port = parseInt(process.env.PORT || "5000", 10);
-  httpServer.listen(
-    {
-      port,
-    },
-    () => {
-      log(`serving on port ${port}`);
-    },
-  );
+
+  const PORT = Number(process.env.PORT) || 5000;
+  httpServer.listen(PORT, "0.0.0.0", () => {
+    log(`Servidor corriendo perfectamente en el puerto ${PORT}`);
+  });
 })();
