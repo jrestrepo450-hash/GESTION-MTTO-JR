@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react"; // 🛡️ Importamos useEffect
 import { Link } from "wouter";
 import { useTickets, useUpdateTicket, useDeleteTicket, useCreateTicket } from "@/hooks/use-tickets";
 import { useSpaces } from "@/hooks/use-spaces";
@@ -26,7 +26,7 @@ import { es } from "date-fns/locale";
 const STATUS_LABELS: Record<string, string> = { 
   pendiente: "Pendiente", 
   Pendiente: "Pendiente", 
-  en_progreso: "En Progreso", // 🛡️ Corregido el texto que rompía el mapeo
+  en_progreso: "En Progreso", 
   resuelto: "Resuelto" 
 };
 
@@ -55,6 +55,16 @@ export default function Tickets() {
   const deleteTicket = useDeleteTicket();
   const createTicket = useCreateTicket();
 
+  // 🛡️ NUEVO: Estado espejo local para renderizado inmediato antivoladuras
+  const [localTickets, setLocalTickets] = useState<any[]>([]);
+
+  // Sincronizar el estado local cada vez que la base de datos traiga data fresca
+  useEffect(() => {
+    if (tickets) {
+      setLocalTickets(tickets);
+    }
+  }, [tickets]);
+
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [priority, setPriority] = useState("media");
@@ -81,17 +91,14 @@ export default function Tickets() {
       onSuccess: () => {
         queryClient.invalidateQueries({ queryKey: ["/api/tickets"] });
         setTicketOpen(false);
-        setTitle(""); 
-        setDescription(""); 
-        setPriority("media"); 
-        setSpaceId(""); 
-        setAssignedToId("");
+        setTitle(""); setDescription(""); setPriority("media"); setSpaceId(""); setAssignedToId("");
         setImageFile(null);
       },
     });
   };
 
-  const filtered = tickets?.filter(t => {
+  // 🛡️ Procesar búsquedas y filtros sobre el estado espejo seguro
+  const filtered = (localTickets || []).filter(t => {
     if (!t) return false;
     
     if (statusFilter !== "all") {
@@ -255,10 +262,14 @@ export default function Tickets() {
                   <div className="flex items-center gap-2 shrink-0">
                     <Select
                       value={statusKey}
-                      onValueChange={val => updateTicket.mutate(
-                        { id: t.id, status: val as any },
-                        { onSuccess: () => queryClient.invalidateQueries({ queryKey: ["/api/tickets"] }) }
-                      )}
+                      onValueChange={val => {
+                        // 🔄 Cambio optimista inmediato en pantalla
+                        setLocalTickets(prev => prev.map(item => item.id === t.id ? { ...item, status: val } : item));
+                        updateTicket.mutate(
+                          { id: t.id, status: val as any },
+                          { onSuccess: () => queryClient.invalidateQueries({ queryKey: ["/api/tickets"] }) }
+                        );
+                      }}
                     >
                       <SelectTrigger className={`h-8 w-36 text-xs border ${STATUS_COLORS[statusKey] || STATUS_COLORS["pendiente"]}`}>
                         <SelectValue />
@@ -303,6 +314,8 @@ export default function Tickets() {
               className="bg-destructive text-destructive-foreground"
               onClick={() => { 
                 if (deletingId) {
+                  // 🔄 Eliminación optimista inmediata en pantalla
+                  setLocalTickets(prev => prev.filter(item => item.id !== deletingId));
                   deleteTicket.mutate(deletingId, {
                     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["/api/tickets"] })
                   });
