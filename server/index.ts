@@ -1,20 +1,19 @@
-import express, { Request, Response, NextFunction, Express } from "express"; 
+import express, { Request, Response, NextFunction, Express } from "express";
 import { registerRoutes } from "./routes";
-import { setupVite } from "./vite"; 
+import { setupVite } from "./vite";
 import http from "http";
 import path from "path";
 
-// 🛡️ Creamos nuestra propia función log local para pintar en consola de forma limpia y segura
 const log = (message: string) => {
   const time = new Date().toLocaleTimeString();
   console.log(`[vite] ${time} ${message}`);
 };
 
-const app: Express = express(); 
+const app: Express = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
-// Middleware de registro de peticiones (Logging) - Idéntico al de tu foto original
+// Middleware de registro de peticiones (Logging)
 app.use((req: Request, res: Response, next: NextFunction) => {
   const start = Date.now();
   const pathReq = req.path;
@@ -46,7 +45,7 @@ app.use((req: Request, res: Response, next: NextFunction) => {
 (async () => {
   const httpServer = http.createServer(app);
 
-  // 🛡️ 1. MIDDLEWARE ANTIVIRUS ANTI-CACHÉ (Cura el error 304 de tu foto de red)
+  // 1. MIDDLEWARE ANTI-CACHÉ 304: Resuelve congelamientos en producción
   app.use('/api', (_req: Request, res: Response, next: NextFunction) => {
     res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
     res.setHeader('Pragma', 'no-cache');
@@ -55,10 +54,10 @@ app.use((req: Request, res: Response, next: NextFunction) => {
     next();
   });
 
-  // 2. Registrar las rutas de la API de la Base de Datos
+  // 2. Registrar las rutas
   await registerRoutes(httpServer, app);
 
-  // 3. Manejador de errores completo de Express (Corregido y seguro)
+  // 3. Manejador global de errores
   app.use((err: any, _req: Request, res: Response, next: NextFunction) => {
     const status = err.status || err.statusCode || 500;
     const message = err.message || "Internal Server Error";
@@ -72,14 +71,14 @@ app.use((req: Request, res: Response, next: NextFunction) => {
     res.status(status).json({ message });
   });
 
-  // 4. Configuración de producción vs desarrollo con las notas de tu código original
+  // 4. Configuración del entorno
   if (process.env.NODE_ENV === "production") {
     app.use(express.static(path.resolve("dist/public")));
     app.get("*", (_req: Request, res: Response) => {
       res.sendFile(path.resolve("dist/public/index.html"));
     });
   } else {
-    // 🛡️ Orden de parámetros correcto: primero httpServer (Server), luego app (Express)
+    // 🛡️ CORRECCIÓN CLAVE: Pasamos primero 'httpServer' y luego 'app' para calzar con vite.ts
     await setupVite(httpServer, app);
   }
 
