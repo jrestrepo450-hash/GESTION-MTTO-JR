@@ -69,24 +69,21 @@ app.use((req, res, next) => {
 (async () => {
   await registerRoutes(httpServer, app);
 
-  app.use((err: any, _req: Request, res: Response, next: NextFunction) => {
-    const status = err.status || err.statusCode || 500;
-    const message = err.message || "Internal Server Error";
+await registerRoutes(httpServer, app);
 
-    console.error("Internal Server Error:", err);
+// 🛡️ PEGAR ESTE BLOQUE AQUÍ (Para desactivar el caché agresivo de Render):
+app.use('/api', (_req, res, next) => {
+  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+  res.setHeader('Pragma', 'no-cache');
+  res.setHeader('Expires', '0');
+  res.setHeader('Surrogate-Control', 'no-store');
+  next();
+});
 
-    if (res.headersSent) {
-      return next(err);
-    }
-
-    return res.status(status).json({ message });
-  });
-
-  // importantly only setup vite in development and after
-  // setting up all the other routes so the catch-all route
-  // doesn't interfere with the other routes
-  if (process.env.NODE_ENV === "production") {
-    app.use(express.static("dist/public"));
+// Esto baja unas líneas y continúa igual:
+app.use((err: any, _req: Request, res: Response, next: NextFunction)) => {
+  const status = err.status || err.statusCode || 500;
+  // ... resto del código del manejador de errores
     
     // 👇 CAMBIA LA LÍNEA PARA QUE QUEDE EXACTAMENTE ASÍ:
     app.get(/^((?!\/api).)*$/, (req, res) => {
