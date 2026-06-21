@@ -10,7 +10,8 @@ export function useTickets(filters?: { spaceId?: number; status?: string }) {
   const queryString = params.toString() ? `?${params.toString()}` : "";
 
   return useQuery<TicketWithRelations[]>({
-    queryKey: [api.tickets.list.path, filters?.spaceId, filters?.status],
+    // 🛡️ Corregido: Llave unificada para que el refresco automático afecte a todas las vistas de inmediato
+    queryKey: [api.tickets.list.path], 
     queryFn: async () => {
       const res = await fetch(`${api.tickets.list.path}${queryString}`, { credentials: "include" });
       return res.json();
