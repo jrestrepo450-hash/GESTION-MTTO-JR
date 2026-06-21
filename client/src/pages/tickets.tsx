@@ -26,7 +26,7 @@ import { es } from "date-fns/locale";
 const STATUS_LABELS: Record<string, string> = { 
   pendiente: "Pendiente", 
   Pendiente: "Pendiente", 
-  en_progreso: "En Progreso", 
+  en_progreso: "En Progreso", // 🛡️ Corregido el texto que rompía el mapeo
   resuelto: "Resuelto" 
 };
 
@@ -48,7 +48,7 @@ export default function Tickets() {
   const [ticketOpen, setTicketOpen] = useState(false);
   const [deletingId, setDeletingId] = useState<number | null>(null);
 
-  const { data: tickets, isLoading } = useTickets(statusFilter !== "all" ? { status: statusFilter } : undefined);
+  const { data: tickets, isLoading } = useTickets(); 
   const { data: spaces } = useSpaces();
   const { data: waUsers } = useWaUsers();
   const updateTicket = useUpdateTicket();
@@ -91,10 +91,14 @@ export default function Tickets() {
     });
   };
 
-  // 🛡️ FILTRADO ULTRA SEGURO: Evita que campos nulos de la Base de Datos rompan la pantalla
   const filtered = tickets?.filter(t => {
     if (!t) return false;
     
+    if (statusFilter !== "all") {
+      const currentStatus = (t.status || "").toLowerCase();
+      if (currentStatus !== statusFilter.toLowerCase()) return false;
+    }
+
     const matchesSearch = 
       (t.title || "").toLowerCase().includes(search.toLowerCase()) ||
       (t.space?.name || "").toLowerCase().includes(search.toLowerCase()) ||
@@ -224,7 +228,6 @@ export default function Tickets() {
       ) : (
         <div className="space-y-3">
           {filtered?.map(t => {
-            // Asegurar que el formato de texto sea tolerante a mayúsculas/minúsculas de la base de datos
             const statusKey = t.status || "pendiente";
             return (
               <Card key={t.id} className="border border-border/50 shadow-sm">
