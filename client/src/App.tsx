@@ -1,60 +1,72 @@
-import { Switch, Route } from "wouter";
-import { queryClient } from "./lib/queryClient";
-import { QueryClientProvider } from "@tanstack/react-query";
-import { Toaster } from "@/components/ui/toaster";
-import { TooltipProvider } from "@/components/ui/tooltip";
-import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
-import NotFound from "@/pages/not-found";
-import { AppSidebar } from "@/components/app-sidebar";
-import Dashboard from "@/pages/dashboard";
-import SpacesList from "@/pages/spaces-list";
-import SpaceDetail from "@/pages/space-detail";
-import WaUsers from "@/pages/wa-users";
-import Tickets from "@/pages/tickets";
-import Consumo from "@/pages/consumo";
-import Preventivo from "@/pages/preventivo";
-import Inventario from "@/pages/inventario";
-import Reporte from "@/pages/reporte";
-import Piscina from "@/pages/piscina";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
-function Router() {
-  return (
-    <Switch>
-      <Route path="/" component={Dashboard} />
-      <Route path="/spaces" component={SpacesList} />
-      <Route path="/spaces/:id" component={SpaceDetail} />
-      <Route path="/usuarios" component={WaUsers} />
-      <Route path="/pendientes" component={Tickets} />
-      <Route path="/consumo" component={Consumo} />
-      <Route path="/preventivo" component={Preventivo} />
-      <Route path="/inventario" component={Inventario} />
-      <Route path="/reporte" component={Reporte} />
-      <Route path="/piscina" component={Piscina} />
-      <Route component={NotFound} />
-    </Switch>
-  );
+// Hook para obtener todos los tickets (Pendientes)
+export function useTickets() {
+  return useQuery<any[]>({
+    queryKey: ["/api/tickets"],
+    queryFn: async () => {
+      const res = await fetch("/api/tickets");
+      if (!res.ok) {
+        throw new Error("Error al consultar los tickets en el servidor");
+      }
+      const data = await res.json();
+      // Nos aseguramos de que siempre devuelva un arreglo para que el .map() de la vista no explote
+      return Array.isArray(data) ? data : [];
+    }
+  });
 }
 
-export default function App() {
-  return (
-    <QueryClientProvider client={queryClient}>
-      <TooltipProvider>
-        <SidebarProvider>
-          <div className="flex h-screen w-full overflow-hidden bg-background">
-            <AppSidebar />
-            <div className="flex flex-col flex-1 w-full overflow-hidden">
-              <header className="h-14 flex items-center px-4 border-b border-border/50 bg-card/80 backdrop-blur-md shrink-0 lg:hidden">
-                <SidebarTrigger data-testid="button-sidebar-toggle" />
-                <span className="ml-3 font-semibold text-foreground">Mantenimiento Hotel</span>
-              </header>
-              <main className="flex-1 overflow-y-auto">
-                <Router />
-              </main>
-            </div>
-          </div>
-        </SidebarProvider>
-        <Toaster />
-      </TooltipProvider>
-    </QueryClientProvider>
-  );
+// Hook para crear un nuevo ticket
+export function useCreateTicket() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (newTicket: any) => {
+      const res = await fetch("/api/tickets", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(newTicket),
+      });
+      if (!res.ok) throw new Error("No se pudo crear el ticket");
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/tickets"] });
+    },
+  });
+}
+
+// Hook para actualizar el estado de un ticket
+export function useUpdateTicket() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, ...changes }: { id: number; status: string }) => {
+      const res = await fetch(`/api/tickets/${id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(changes),
+      });
+      if (!res.ok) throw new Error("No se pudo actualizar el ticket");
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/tickets"] });
+    },
+  });
+}
+
+// Hook para eliminar un ticket
+export function useDeleteTicket() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: number) => {
+      const res = await fetch(`/api/tickets/${id}`, {
+        method: "DELETE",
+      });
+      if (!res.ok) throw new Error("No se pudo eliminar el ticket");
+      return true;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/tickets"] });
+    },
+  });
 }
