@@ -3,6 +3,7 @@ import { Link } from "wouter";
 import { useTickets, useUpdateTicket, useDeleteTicket, useCreateTicket } from "@/hooks/use-tickets";
 import { useSpaces } from "@/hooks/use-spaces";
 import { useWaUsers } from "@/hooks/use-wa-users";
+import { useQueryClient } from "@tanstack/react-query";
 import { ClipboardList, Plus, Trash2, ChevronRight, Filter } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -24,22 +25,24 @@ import { es } from "date-fns/locale";
 
 const STATUS_LABELS: Record<string, string> = { 
   pendiente: "Pendiente", 
-  Pendiente: "Pendiente", // 🛡️ Soporte para P mayúscula
+  Pendiente: "Pendiente", 
   en_progreso: "En Progreso", 
   resuelto: "Resuelto" 
 };
 
 const STATUS_COLORS: Record<string, string> = {
   pendiente: "border-amber-400 text-amber-600 bg-amber-50 dark:bg-amber-900/20",
-  Pendiente: "border-amber-400 text-amber-600 bg-amber-50 dark:bg-amber-900/20", // 🛡️ Mismo color
+  Pendiente: "border-amber-400 text-amber-600 bg-amber-50 dark:bg-amber-900/20", 
   en_progreso: "border-blue-400 text-blue-600 bg-blue-50 dark:bg-blue-900/20",
   resuelto: "border-green-400 text-green-600 bg-green-50 dark:bg-green-900/20"
 };
+
 const PRIORITY_COLORS: Record<string, string> = {
   baja: "text-slate-500", media: "text-blue-500", alta: "text-amber-500", urgente: "text-red-500 font-bold",
 };
 
 export default function Tickets() {
+  const queryClient = useQueryClient();
   const [statusFilter, setStatusFilter] = useState("all");
   const [search, setSearch] = useState("");
   const [ticketOpen, setTicketOpen] = useState(false);
@@ -62,28 +65,43 @@ export default function Tickets() {
   const handleCreate = (e: React.FormEvent) => {
     e.preventDefault();
     if (!title.trim() || !spaceId) return;
+    
+    const parsedAssignedTo = assignedToId && assignedToId !== "none" ? Number(assignedToId) : null;
+
     createTicket.mutate({
       title,
       description,
       priority: priority as any,
       status: "pendiente",
       spaceId: Number(spaceId),
-      imageUrl: imageFile ? URL.createObjectURL(imageFile) : null,
-      assignedToId: assignedToId ? Number(assignedToId) : null,
+      imageUrl: null, 
+      assignedToId: parsedAssignedTo,
       createdById: null,
     }, {
       onSuccess: () => {
+        queryClient.invalidateQueries({ queryKey: ["/api/tickets"] });
         setTicketOpen(false);
-        setTitle(""); setDescription(""); setPriority("media"); setSpaceId(""); setAssignedToId("");
+        setTitle(""); 
+        setDescription(""); 
+        setPriority("media"); 
+        setSpaceId(""); 
+        setAssignedToId("");
+        setImageFile(null);
       },
     });
   };
 
-  const filtered = tickets?.filter(t =>
-    t.title.toLowerCase().includes(search.toLowerCase()) ||
-    t.space?.name.toLowerCase().includes(search.toLowerCase()) ||
-    t.assignedTo?.name.toLowerCase().includes(search.toLowerCase())
-  );
+  // 🛡️ FILTRADO ULTRA SEGURO: Evita que campos nulos de la Base de Datos rompan la pantalla
+  const filtered = tickets?.filter(t => {
+    if (!t) return false;
+    
+    const matchesSearch = 
+      (t.title || "").toLowerCase().includes(search.toLowerCase()) ||
+      (t.space?.name || "").toLowerCase().includes(search.toLowerCase()) ||
+      (t.assignedTo?.name || "").toLowerCase().includes(search.toLowerCase());
+      
+    return matchesSearch;
+  });
 
   return (
     <div className="p-6 md:p-10 max-w-6xl mx-auto">
@@ -156,22 +174,22 @@ export default function Tickets() {
                 </div>
               </div>
               <div className="space-y-2">
-  <label className="text-sm font-medium block">Evidencia Fotográfica</label>
-  <input 
-    type="file" 
-    accept="image/*" 
-    capture="environment"
-    onChange={(e) => {
-      if (e.target.files && e.target.files[0]) {
-        setImageFile(e.target.files[0]);
-      }
-    }}
-    className="block w-full text-sm text-muted-foreground file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-primary file:text-primary-foreground hover:file:opacity-90"
-  />
-  {imageFile && (
-    <p className="text-xs text-green-500">✓ Foto cargada con éxito</p>
-  )}
-</div>
+                <label className="text-sm font-medium block">Evidencia Fotográfica</label>
+                <input 
+                  type="file" 
+                  accept="image/*" 
+                  capture="environment"
+                  onChange={(e) => {
+                    if (e.target.files && e.target.files[0]) {
+                      setImageFile(e.target.files[0]);
+                    }
+                  }}
+                  className="block w-full text-sm text-muted-foreground file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-primary file:text-primary-foreground hover:file:opacity-90"
+                />
+                {imageFile && (
+                  <p className="text-xs text-green-500">✓ Foto cargada con éxito</p>
+                )}
+              </div>
               <Button type="submit" className="w-full" disabled={createTicket.isPending || !title || !spaceId}>
                 {createTicket.isPending ? "Creando..." : "Crear pendiente"}
               </Button>
@@ -205,57 +223,66 @@ export default function Tickets() {
         <div className="text-center text-muted-foreground py-10">Cargando...</div>
       ) : (
         <div className="space-y-3">
-          {filtered?.map(t => (
-            <Card key={t.id} className="border border-border/50 shadow-sm">
-              <CardContent className="p-4 flex items-start gap-4">
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-start gap-2 flex-wrap mb-1.5">
-                    <span className="font-semibold text-sm">{t.title}</span>
-                    <span className={`text-xs ${PRIORITY_COLORS[t.priority]}`}>[{t.priority.toUpperCase()}]</span>
-                  </div>
-                  {t.description && (
-                    <p className="text-xs text-muted-foreground mb-2 leading-relaxed">{t.description}</p>
-                  )}
-                  <div className="flex items-center gap-3 flex-wrap text-xs text-muted-foreground">
-                    {t.space && (
-                      <Link href={`/spaces/${t.space.id}`} className="flex items-center gap-1 hover:text-primary transition-colors">
-                        <ChevronRight className="h-3 w-3" /> {t.space.name}
-                      </Link>
+          {filtered?.map(t => {
+            // Asegurar que el formato de texto sea tolerante a mayúsculas/minúsculas de la base de datos
+            const statusKey = t.status || "pendiente";
+            return (
+              <Card key={t.id} className="border border-border/50 shadow-sm">
+                <CardContent className="p-4 flex items-start gap-4">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-start gap-2 flex-wrap mb-1.5">
+                      <span className="font-semibold text-sm">{t.title}</span>
+                      <span className={`text-xs ${PRIORITY_COLORS[t.priority] || "text-slate-500"}`}>
+                        [{String(t.priority || "MEDIA").toUpperCase()}]
+                      </span>
+                    </div>
+                    {t.description && (
+                      <p className="text-xs text-muted-foreground mb-2 leading-relaxed">{t.description}</p>
                     )}
-                    {t.assignedTo && <span>Asignado: <strong>{t.assignedTo.name}</strong></span>}
-                    {t.createdAt && <span>{format(new Date(t.createdAt), "dd MMM yyyy", { locale: es })}</span>}
+                    <div className="flex items-center gap-3 flex-wrap text-xs text-muted-foreground">
+                      {t.space && (
+                        <Link href={`/spaces/${t.space.id}`} className="flex items-center gap-1 hover:text-primary transition-colors">
+                          <ChevronRight className="h-3 w-3" /> {t.space.name}
+                        </Link>
+                      )}
+                      {t.assignedTo && <span>Asignado: <strong>{t.assignedTo.name}</strong></span>}
+                      {t.createdAt && <span>{format(new Date(t.createdAt), "dd MMM yyyy", { locale: es })}</span>}
+                    </div>
                   </div>
-                </div>
-                <div className="flex items-center gap-2 shrink-0">
-                  <Select
-                    value={t.status}
-                    onValueChange={val => updateTicket.mutate({ id: t.id, status: val as any })}
-                  >
-                    <SelectTrigger className={`h-8 w-36 text-xs border ${STATUS_COLORS[t.status] || ""}`}>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="pendiente">Pendiente</SelectItem>
-                      <SelectItem value="en_progreso">En Progreso</SelectItem>
-                      <SelectItem value="resuelto">Resuelto</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <Button
-                    variant="ghost" size="icon"
-                    className="h-8 w-8 text-destructive"
-                    onClick={() => setDeletingId(t.id)}
-                    data-testid={`button-delete-ticket-${t.id}`}
-                  >
-                    <Trash2 className="h-3.5 w-3.5" />
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
+                  <div className="flex items-center gap-2 shrink-0">
+                    <Select
+                      value={statusKey}
+                      onValueChange={val => updateTicket.mutate(
+                        { id: t.id, status: val as any },
+                        { onSuccess: () => queryClient.invalidateQueries({ queryKey: ["/api/tickets"] }) }
+                      )}
+                    >
+                      <SelectTrigger className={`h-8 w-36 text-xs border ${STATUS_COLORS[statusKey] || STATUS_COLORS["pendiente"]}`}>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="pendiente">Pendiente</SelectItem>
+                        <SelectItem value="en_progreso">En Progreso</SelectItem>
+                        <SelectItem value="resuelto">Resuelto</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <Button
+                      variant="ghost" size="icon"
+                      className="h-8 w-8 text-destructive"
+                      onClick={() => setDeletingId(t.id)}
+                      data-testid={`button-delete-ticket-${t.id}`}
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            );
+          })}
           {filtered?.length === 0 && (
             <div className="text-center py-16 text-muted-foreground">
               <ClipboardList className="h-10 w-10 mx-auto mb-3 opacity-20" />
-              <p>No hay pendientes {statusFilter !== "all" ? `con estado "${STATUS_LABELS[statusFilter]}"` : ""}</p>
+              <p>No hay pendientes {statusFilter !== "all" ? `con estado "${STATUS_LABELS[statusFilter] || statusFilter}"` : ""}</p>
             </div>
           )}
         </div>
@@ -271,7 +298,14 @@ export default function Tickets() {
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
             <AlertDialogAction
               className="bg-destructive text-destructive-foreground"
-              onClick={() => { if (deletingId) deleteTicket.mutate(deletingId); setDeletingId(null); }}
+              onClick={() => { 
+                if (deletingId) {
+                  deleteTicket.mutate(deletingId, {
+                    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["/api/tickets"] })
+                  });
+                } 
+                setDeletingId(null); 
+              }}
             >
               Eliminar
             </AlertDialogAction>
