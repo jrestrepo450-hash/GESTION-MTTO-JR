@@ -39,7 +39,6 @@ export default function Tickets() {
   const [ticketOpen, setTicketOpen] = useState(false);
   const [deletingId, setDeletingId] = useState<number | null>(null);
 
-  // Consumo directo de Hooks
   const { data: tickets, isLoading } = useTickets(); 
   const { data: spaces } = useSpaces();
   const { data: waUsers } = useWaUsers();
@@ -62,7 +61,6 @@ export default function Tickets() {
     }
   }, [tickets]);
 
-  // Formateador nativo ultra simple
   const formatSafeDate = (rawDate: any) => {
     if (!rawDate) return "Reciente";
     try {
@@ -98,7 +96,6 @@ export default function Tickets() {
     });
   };
 
-  // Filtrado 100% tolerante a fallos de datos nulos o undefined
   const filtered = (localTickets || []).filter(t => {
     if (!t) return false;
     
@@ -220,8 +217,13 @@ export default function Tickets() {
         <div className="space-y-3">
           {filtered.map(t => {
             const statusKey = t.status || "pendiente";
+            
+            // 🛡️ Blindaje total de relaciones en el renderizado
             const currentSpaceName = t.space?.name || "Espacio asignado";
             const currentTechName = t.assignedTo?.name || null;
+            
+            // 🛡️ Normalización estricta de prioridad (Previene error 'undefined' de claves css)
+            const priorityKey = String(t.priority || "media").toLowerCase();
 
             return (
               <Card key={t.id} className="border border-border/50 shadow-sm">
@@ -229,8 +231,8 @@ export default function Tickets() {
                   <div className="flex-1 min-w-0">
                     <div className="flex items-start gap-2 flex-wrap mb-1.5">
                       <span className="font-semibold text-sm">{t.title}</span>
-                      <span className={`text-xs ${PRIORITY_COLORS[t.priority] || "text-slate-500"}`}>
-                        [{String(t.priority || "MEDIA").toUpperCase()}]
+                      <span className={`text-xs ${PRIORITY_COLORS[priorityKey] || "text-slate-500"}`}>
+                        [{priorityKey.toUpperCase()}]
                       </span>
                     </div>
                     {t.description && (
