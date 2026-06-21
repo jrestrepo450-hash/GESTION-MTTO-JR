@@ -3,7 +3,7 @@ import { useTickets, useUpdateTicket, useDeleteTicket, useCreateTicket } from "@
 import { useSpaces } from "@/hooks/use-spaces";
 import { useWaUsers } from "@/hooks/use-wa-users";
 import { useQueryClient } from "@tanstack/react-query";
-import { ClipboardList, Plus, Trash2, ChevronRight, Filter, User } from "lucide-react";
+import { ClipboardList, Plus, Trash2, ChevronRight, Filter, User } from "lucide-react"; // Añadido User
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -39,7 +39,6 @@ export default function Tickets() {
   const [ticketOpen, setTicketOpen] = useState(false);
   const [deletingId, setDeletingId] = useState<number | null>(null);
 
-  // Leemos los datos directamente desde el servidor usando React Query
   const { data: tickets, isLoading } = useTickets(); 
   const { data: spaces } = useSpaces();
   const { data: waUsers } = useWaUsers();
@@ -48,11 +47,19 @@ export default function Tickets() {
   const deleteTicket = useDeleteTicket();
   const createTicket = useCreateTicket();
 
+  const [localTickets, setLocalTickets] = useState<any[]>([]);
+
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [priority, setPriority] = useState("media");
   const [spaceId, setSpaceId] = useState<string>("");
   const [assignedToId, setAssignedToId] = useState<string>("");
+
+  useEffect(() => {
+    if (tickets && Array.isArray(tickets)) {
+      setLocalTickets(tickets);
+    }
+  }, [tickets]);
 
   const formatSafeDate = (rawDate: any) => {
     if (!rawDate) return "Reciente";
@@ -89,8 +96,7 @@ export default function Tickets() {
     });
   };
 
-  // Filtramos leyendo directamente la variable estable 'tickets' de internet, sin usar intermediarios
-  const filtered = (tickets || []).filter(t => {
+  const filtered = (localTickets || []).filter(t => {
     if (!t) return false;
     
     if (statusFilter !== "all") {
@@ -210,10 +216,11 @@ export default function Tickets() {
       ) : (
         <div className="space-y-3">
           {filtered.map(t => {
-            // Convertimos estados y prioridades a minúsculas seguras para evitar errores de estilos CSS
+            // 🛡️ Normalizamos strings para evitar desajustes con las llaves CSS de Tailwind
             const statusKey = String(t.status || "pendiente").toLowerCase();
             const priorityKey = String(t.priority || "media").toLowerCase();
             
+            // 🛡️ Relaciones tolerantes a fallos (Evitan pantallas en blanco)
             const currentSpaceName = t.space?.name || "Espacio asignado";
             const currentTechName = t.assignedTo?.name || null;
 
@@ -235,6 +242,7 @@ export default function Tickets() {
                         <ChevronRight className="h-3 w-3" /> {currentSpaceName}
                       </span>
                       {currentTechName && (
+                        // 🛡️ Fallback gráfico nativo: Icono local en lugar de llamadas 404 a Gravatar externa
                         <span className="flex items-center gap-1">
                           <User className="h-3 w-3 text-muted-foreground inline" />
                           Asignado: <strong>{currentTechName}</strong>
@@ -248,7 +256,7 @@ export default function Tickets() {
                       value={statusKey}
                       onValueChange={val => {
                         const cleanVal = String(val).toLowerCase();
-                        // Actualiza directamente en el servidor sin causar bucles locales
+                        setLocalTickets(prev => prev.map(item => item.id === t.id ? { ...item, status: cleanVal } : item));
                         updateTicket.mutate({ id: t.id, status: cleanVal as any });
                       }}
                     >
@@ -294,6 +302,7 @@ export default function Tickets() {
               className="bg-destructive text-destructive-foreground"
               onClick={() => { 
                 if (deletingId) {
+                  setLocalTickets(prev => prev.filter(item => item.id !== deletingId));
                   deleteTicket.mutate(deletingId);
                 } 
                 setDeletingId(null); 
